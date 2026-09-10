@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 로컬 전용 작업 메모 (JWT 시크릿/DB 비밀번호 등 실제 값 포함, 커밋 금지)
+NOTES.md
