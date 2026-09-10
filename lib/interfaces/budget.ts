@@ -163,3 +163,14 @@ export interface BudgetPlanRequest {
   note?: string;
   items: BudgetItemRequest[];
 }
+
+export interface StudyDepositLedgerEntryResponse {
+  id: string;
+  activityId: string;
+  activityTitle: string;
+  participantId: string;
+  userName: string;
+  studentId: string | null;
+  amount: number;
+  occurredAt: string;
+}

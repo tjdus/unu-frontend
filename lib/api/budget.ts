@@ -1,5 +1,9 @@
 import axiosInstance from "./axiosInstance";
-import { BudgetPlanRequest, BudgetPlanResponse } from "../interfaces/budget";
+import {
+  BudgetPlanRequest,
+  BudgetPlanResponse,
+  StudyDepositLedgerEntryResponse,
+} from "../interfaces/budget";
 
 // 분기별 예산 계획 목록 조회
 export async function getBudgetPlansByQuarter(
@@ -63,5 +67,18 @@ export async function getCarryover(
   const res = await axiosInstance.get<number>("/budget/carryover", {
     params: { quarterId, month },
   });
+  return res.data;
+}
+
+// 스터디 보증금 카테고리(수입/환급)의 참여자별 상세 내역 조회
+export async function getStudyDepositLedgerEntries(
+  quarterId: string,
+  month: number,
+  category: "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND",
+): Promise<StudyDepositLedgerEntryResponse[]> {
+  const res = await axiosInstance.get<StudyDepositLedgerEntryResponse[]>(
+    "/budget/deposit-entries",
+    { params: { quarterId, month, category } },
+  );
   return res.data;
 }

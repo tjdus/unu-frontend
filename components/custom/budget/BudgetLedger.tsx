@@ -39,8 +39,15 @@ import {
   deleteBudgetPlan,
   getCarryover,
 } from "@/lib/api/budget";
+import { StudyDepositDetailDialog } from "./StudyDepositDetailDialog";
 
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+// 참여자별 상세 내역으로 자동 연동되는 카테고리 — 가계부에서 상세보기 가능, 수동 실제금액 입력 비활성화
+const AUTO_SYNCED_CATEGORIES = new Set<BudgetCategory>([
+  "INCOME_STUDY_DEPOSIT",
+  "EXPENSE_STUDY_DEPOSIT_REFUND",
+]);
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("ko-KR", {
@@ -72,6 +79,9 @@ export function BudgetLedger({
   const [formItems, setFormItems] = useState<BudgetItemRequest[]>([]);
   const [formNote, setFormNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [detailDialogCategory, setDetailDialogCategory] = useState<
+    "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND" | null
+  >(null);
 
   useEffect(() => {
     if (!selectedQuarterId) return;
@@ -399,15 +409,32 @@ export function BudgetLedger({
                       </span>
                     </div>
                     <div className="rounded-lg border divide-y">
-                      {groupItems.map((item) => (
+                      {groupItems.map((item) => {
+                        const isAutoSynced = AUTO_SYNCED_CATEGORIES.has(item.category);
+                        return (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm"
+                          className={`flex items-center justify-between px-4 py-2.5 text-sm ${
+                            isAutoSynced ? "cursor-pointer hover:bg-muted/50" : ""
+                          }`}
+                          onClick={
+                            isAutoSynced
+                              ? () =>
+                                  setDetailDialogCategory(
+                                    item.category as "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND",
+                                  )
+                              : undefined
+                          }
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">
                               {CATEGORY_LABEL[item.category]}
                             </span>
+                            {isAutoSynced && (
+                              <span className="text-xs text-primary underline underline-offset-2">
+                                상세보기
+                              </span>
+                            )}
                             {item.note && (
                               <span className="text-xs text-muted-foreground/60">
                                 {item.note}
@@ -432,7 +459,8 @@ export function BudgetLedger({
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -503,6 +531,7 @@ export function BudgetLedger({
                     const idx = formItems.findIndex((i) => i.category === cat);
                     if (idx === -1) return null;
                     const item = formItems[idx];
+                    const isAutoSynced = AUTO_SYNCED_CATEGORIES.has(cat);
                     return (
                       <div
                         key={cat}
@@ -525,24 +554,32 @@ export function BudgetLedger({
                           }}
                           className="h-8 text-sm"
                         />
-                        <Input
-                          type="number"
-                          placeholder="실제 금액"
-                          value={
-                            item.actualAmount == null || item.actualAmount === 0
-                              ? ""
-                              : Math.abs(item.actualAmount)
-                          }
-                          onChange={(e) => {
-                            const v = e.target.value === "" ? null : Number(e.target.value);
-                            updateItem(
-                              idx,
-                              "actualAmount",
-                              v == null ? null : group.isIncome ? v : -v,
-                            );
-                          }}
-                          className="h-8 text-sm"
-                        />
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="실제 금액"
+                            value={
+                              item.actualAmount == null || item.actualAmount === 0
+                                ? ""
+                                : Math.abs(item.actualAmount)
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value === "" ? null : Number(e.target.value);
+                              updateItem(
+                                idx,
+                                "actualAmount",
+                                v == null ? null : group.isIncome ? v : -v,
+                              );
+                            }}
+                            className="h-8 text-sm"
+                            disabled={isAutoSynced}
+                          />
+                          {isAutoSynced && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              자동 계산됨 — 신청/수료 처리 시 반영
+                            </p>
+                          )}
+                        </div>
                         <Input
                           placeholder="메모"
                           value={item.note ?? ""}
@@ -583,6 +620,14 @@ export function BudgetLedger({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StudyDepositDetailDialog
+        open={detailDialogCategory !== null}
+        onOpenChange={(open) => !open && setDetailDialogCategory(null)}
+        quarterId={selectedQuarterId}
+        month={selectedMonth}
+        category={detailDialogCategory ?? "INCOME_STUDY_DEPOSIT"}
+      />
     </div>
   );
 }
