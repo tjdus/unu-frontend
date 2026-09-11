@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Minus, Download, Upload } from "lucide-react";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import {
   BudgetPlanResponse,
@@ -41,6 +41,7 @@ import {
   downloadBudgetExcel,
 } from "@/lib/api/budget";
 import { StudyDepositDetailDialog } from "./StudyDepositDetailDialog";
+import { BudgetImportDialog } from "./BudgetImportDialog";
 
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
@@ -84,8 +85,10 @@ export function BudgetLedger({
     "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND" | null
   >(null);
   const [downloading, setDownloading] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const loadPlans = useCallback(() => {
     if (!selectedQuarterId) return;
     setLoading(true);
     getBudgetPlansByQuarter(selectedQuarterId)
@@ -93,6 +96,10 @@ export function BudgetLedger({
       .catch(() => toast.error("예산 계획을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, [selectedQuarterId]);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
 
   const currentPlan = plans.find((p) => p.month === selectedMonth) ?? null;
 
@@ -279,15 +286,36 @@ export function BudgetLedger({
             ? `${selectedYear}년 전체(1~12월) 데이터를 기존 시트 양식으로 내려받을 수 있습니다.`
             : ""}
         </p>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleDownloadExcel}
-          disabled={downloading || !selectedYear}
-        >
-          <Download className="h-3.5 w-3.5 mr-1" />
-          {downloading ? "다운로드 중..." : "엑셀 다운로드"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5 mr-1" />
+            엑셀 업로드
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDownloadExcel}
+            disabled={downloading || !selectedYear}
+          >
+            <Download className="h-3.5 w-3.5 mr-1" />
+            {downloading ? "다운로드 중..." : "엑셀 다운로드"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={(e) => {
+              setImportFile(e.target.files?.[0] ?? null);
+              // 같은 파일을 고쳐서 다시 골라도 onChange가 오도록 비운다
+              e.target.value = "";
+            }}
+          />
+        </div>
       </div>
 
       {/* 분기 요약 KPI */}
@@ -671,6 +699,12 @@ export function BudgetLedger({
         quarterId={selectedQuarterId}
         month={selectedMonth}
         category={detailDialogCategory ?? "INCOME_STUDY_DEPOSIT"}
+      />
+
+      <BudgetImportDialog
+        file={importFile}
+        onClose={() => setImportFile(null)}
+        onApplied={loadPlans}
       />
     </div>
   );

@@ -164,6 +164,29 @@ export interface BudgetPlanRequest {
   items: BudgetItemRequest[];
 }
 
+export type BudgetImportStatus = "CREATE" | "UPDATE" | "SKIP" | "ERROR";
+
+export interface BudgetImportChange {
+  categoryLabel: string;
+  field: "예상" | "실제";
+  before: number;
+  after: number;
+}
+
+export interface BudgetImportMonth {
+  month: number;
+  status: BudgetImportStatus;
+  quarterName: string | null;
+  changes: BudgetImportChange[];
+}
+
+export interface BudgetImportResult {
+  year: number;
+  months: BudgetImportMonth[];
+  warnings: string[];
+  errors: string[];
+}
+
 export interface StudyDepositLedgerEntryResponse {
   id: string;
   activityId: string;

@@ -1,5 +1,6 @@
 import axiosInstance from "./axiosInstance";
 import {
+  BudgetImportResult,
   BudgetPlanRequest,
   BudgetPlanResponse,
   StudyDepositLedgerEntryResponse,
@@ -77,6 +78,27 @@ export async function downloadBudgetExcel(year: number): Promise<Blob> {
     responseType: "blob",
   });
   return res.data;
+}
+
+// 가계부 엑셀 업로드 — axiosInstance 기본 Content-Type(JSON)을 지워야 multipart 경계가 붙는다
+async function postBudgetImport(path: string, file: File): Promise<BudgetImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await axiosInstance.post<BudgetImportResult>(path, formData, {
+    headers: { "Content-Type": undefined },
+    timeout: 60000,
+  });
+  return res.data;
+}
+
+// 저장 없이 월별 변경 내역만 미리보기
+export function previewBudgetImport(file: File): Promise<BudgetImportResult> {
+  return postBudgetImport("/budget/import/preview", file);
+}
+
+// 실제 반영 (서버에서 다시 계산하고, 오류가 있으면 아무것도 저장하지 않음)
+export function applyBudgetImport(file: File): Promise<BudgetImportResult> {
+  return postBudgetImport("/budget/import", file);
 }
 
 // 스터디 보증금 카테고리(수입/환급)의 참여자별 상세 내역 조회
