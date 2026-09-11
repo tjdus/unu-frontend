@@ -6,7 +6,6 @@ import { SiteFooter } from "@/components/custom/site-footer";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { SidebarProvider } from "@/lib/contexts/SidebarContext";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "next-themes";
 import { ActivityNoticeUnreadProvider } from "@/lib/contexts/ActivityNoticeUnreadContext";
 import { MenuNotificationProvider } from "@/lib/contexts/MenuNotificationContext";
 import { NoticeUnreadProvider } from "@/lib/contexts/NoticeUnreadContext";
@@ -46,30 +45,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="ko" data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${instrumentSans.variable} antialiased`}
       >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          <AuthProvider>
-            <NoticeUnreadProvider>
-              <ActivityNoticeUnreadProvider>
-                <MenuNotificationProvider>
-                  <ApplicantNotificationProvider>
-                    <div className="min-h-screen flex flex-col">
-                      <SidebarProvider>
-                        <NavigationBar />
-                        {children}
-                        <SiteFooter />
-                      </SidebarProvider>
-                    </div>
-                    <Toaster />
-                  </ApplicantNotificationProvider>
-                </MenuNotificationProvider>
-              </ActivityNoticeUnreadProvider>
-            </NoticeUnreadProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <NoticeUnreadProvider>
+            <ActivityNoticeUnreadProvider>
+              <MenuNotificationProvider>
+                <ApplicantNotificationProvider>
+                  <div className="min-h-screen flex flex-col">
+                    <SidebarProvider>
+                      <NavigationBar />
+                      {children}
+                      <SiteFooter />
+                    </SidebarProvider>
+                  </div>
+                  <Toaster />
+                </ApplicantNotificationProvider>
+              </MenuNotificationProvider>
+            </ActivityNoticeUnreadProvider>
+          </NoticeUnreadProvider>
+        </AuthProvider>
       </body>
     </html>
   );
