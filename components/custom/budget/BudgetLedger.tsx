@@ -45,7 +45,7 @@ import { BudgetImportDialog } from "./BudgetImportDialog";
 
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-// 참여자별 상세 내역으로 자동 연동되는 카테고리 — 가계부에서 상세보기 가능, 수동 실제금액 입력 비활성화
+// 참여자별 상세 내역으로 자동 연동되는 카테고리 — 예산안에서 상세보기 가능, 수동 실제금액 입력 비활성화
 const AUTO_SYNCED_CATEGORIES = new Set<BudgetCategory>([
   "INCOME_STUDY_DEPOSIT",
   "EXPENSE_STUDY_DEPOSIT_REFUND",
@@ -265,10 +265,10 @@ export function BudgetLedger({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${selectedYear}년_가계부.xlsx`;
+      a.download = `${selectedYear}년_예산안.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${selectedYear}년 가계부를 다운로드했습니다.`);
+      toast.success(`${selectedYear}년 예산안을 다운로드했습니다.`);
     } catch {
       // responseType이 blob이면 에러 본문도 Blob이라 서버 메시지를 꺼낼 수 없다
       toast.error("엑셀 다운로드에 실패했습니다.");

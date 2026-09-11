@@ -92,7 +92,7 @@ export function BudgetImportDialog({ file, onClose, onApplied }: Props) {
     setApplying(true);
     try {
       await applyBudgetImport(file);
-      toast.success(`${result.year}년 가계부에 반영했습니다. (변경 ${totalChanges}칸)`);
+      toast.success(`${result.year}년 예산안에 반영했습니다. (변경 ${totalChanges}칸)`);
       onApplied();
       onClose();
     } catch (e) {

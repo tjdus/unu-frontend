@@ -188,7 +188,7 @@ export default function BudgetPage() {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          가계부
+          예산안
         </button>
         <button
           onClick={() => setActiveTab("activity")}
@@ -202,7 +202,7 @@ export default function BudgetPage() {
         </button>
       </div>
 
-      {/* 가계부 탭 */}
+      {/* 예산안 탭 */}
       {activeTab === "ledger" && (
         <BudgetLedger
           quarters={quarters}

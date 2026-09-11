@@ -71,7 +71,7 @@ export async function getCarryover(
   return res.data;
 }
 
-// 가계부 엑셀(.xlsx) 다운로드 (해당 연도 1~12월 전체)
+// 예산안 엑셀(.xlsx) 다운로드 (해당 연도 1~12월 전체)
 export async function downloadBudgetExcel(year: number): Promise<Blob> {
   const res = await axiosInstance.get("/budget/export", {
     params: { year },
@@ -80,7 +80,7 @@ export async function downloadBudgetExcel(year: number): Promise<Blob> {
   return res.data;
 }
 
-// 가계부 엑셀 업로드 — axiosInstance 기본 Content-Type(JSON)을 지워야 multipart 경계가 붙는다
+// 예산안 엑셀 업로드 — axiosInstance 기본 Content-Type(JSON)을 지워야 multipart 경계가 붙는다
 async function postBudgetImport(path: string, file: File): Promise<BudgetImportResult> {
   const formData = new FormData();
   formData.append("file", file);
