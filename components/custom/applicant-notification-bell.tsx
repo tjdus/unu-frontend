@@ -48,13 +48,13 @@ export function ApplicantNotificationBell({ className }: { className?: string })
             "relative rounded-none text-white/80 hover:bg-white/10 hover:text-white",
             className,
           )}
-          aria-label="신청자 알림"
+          aria-label="알림"
         >
           <Bell className="size-4" />
           {totalCount > 0 && (
             <span
               className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-semibold text-white"
-              aria-label="새 신청자 알림"
+              aria-label="새 알림"
             >
               {formatUnreadCount(totalCount)}
             </span>
@@ -63,7 +63,7 @@ export function ApplicantNotificationBell({ className }: { className?: string })
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0">
         <div className="border-b px-3 py-2 text-sm font-medium">
-          신청자 알림
+          알림
         </div>
         <ScrollArea className="max-h-80">
           {isLoading ? (
@@ -72,7 +72,7 @@ export function ApplicantNotificationBell({ className }: { className?: string })
             </div>
           ) : entries.length === 0 ? (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              새로운 신청자가 없습니다
+              새로운 알림이 없습니다
             </div>
           ) : (
             <ul className="divide-y">
@@ -85,7 +85,7 @@ export function ApplicantNotificationBell({ className }: { className?: string })
                   >
                     <span className="truncate">{entry.activityTitle}</span>
                     <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">
-                      +{entry.newApplicantCount}
+                      새 신청 {entry.newApplicantCount}명
                     </span>
                   </Link>
                 </li>
