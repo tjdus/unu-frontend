@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import {
   BudgetPlanResponse,
@@ -38,6 +38,7 @@ import {
   updateBudgetPlan,
   deleteBudgetPlan,
   getCarryover,
+  downloadBudgetExcel,
 } from "@/lib/api/budget";
 import { StudyDepositDetailDialog } from "./StudyDepositDetailDialog";
 
@@ -82,6 +83,7 @@ export function BudgetLedger({
   const [detailDialogCategory, setDetailDialogCategory] = useState<
     "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND" | null
   >(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!selectedQuarterId) return;
@@ -241,11 +243,51 @@ export function BudgetLedger({
   const totalExpense = plans.reduce((s, p) => s + p.totalExpense, 0);
   const totalMargin = plans.reduce((s, p) => s + p.plannedMargin, 0);
 
-  const selectedQuarterName =
-    quarters.find((q) => q.id === selectedQuarterId)?.name ?? "";
+  const selectedQuarter = quarters.find((q) => q.id === selectedQuarterId);
+  const selectedQuarterName = selectedQuarter?.name ?? "";
+  const selectedYear = selectedQuarter?.year;
+
+  // 엑셀은 시트 원본과 동일하게 "연도 전체(1~12월)" 단위로 내려받는다.
+  async function handleDownloadExcel() {
+    if (!selectedYear) return;
+    setDownloading(true);
+    try {
+      const blob = await downloadBudgetExcel(selectedYear);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedYear}년_가계부.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${selectedYear}년 가계부를 다운로드했습니다.`);
+    } catch {
+      // responseType이 blob이면 에러 본문도 Blob이라 서버 메시지를 꺼낼 수 없다
+      toast.error("엑셀 다운로드에 실패했습니다.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {/* 연도 단위 엑셀 내보내기 */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {selectedYear
+            ? `${selectedYear}년 전체(1~12월) 데이터를 기존 시트 양식으로 내려받을 수 있습니다.`
+            : ""}
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleDownloadExcel}
+          disabled={downloading || !selectedYear}
+        >
+          <Download className="h-3.5 w-3.5 mr-1" />
+          {downloading ? "다운로드 중..." : "엑셀 다운로드"}
+        </Button>
+      </div>
+
       {/* 분기 요약 KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>

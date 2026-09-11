@@ -70,6 +70,15 @@ export async function getCarryover(
   return res.data;
 }
 
+// 가계부 엑셀(.xlsx) 다운로드 (해당 연도 1~12월 전체)
+export async function downloadBudgetExcel(year: number): Promise<Blob> {
+  const res = await axiosInstance.get("/budget/export", {
+    params: { year },
+    responseType: "blob",
+  });
+  return res.data;
+}
+
 // 스터디 보증금 카테고리(수입/환급)의 참여자별 상세 내역 조회
 export async function getStudyDepositLedgerEntries(
   quarterId: string,
