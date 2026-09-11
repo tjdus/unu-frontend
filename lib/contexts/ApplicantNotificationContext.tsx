@@ -22,7 +22,7 @@ interface ApplicantNotificationState {
 interface ApplicantNotificationContextValue extends ApplicantNotificationState {
   isLoading: boolean;
   refresh: () => Promise<void>;
-  acknowledge: () => Promise<void>;
+  acknowledge: () => Promise<ActivityApplicantCount[]>;
 }
 
 const EMPTY_STATE: ApplicantNotificationState = { totalCount: 0, byActivity: [] };
@@ -42,6 +42,7 @@ export function ApplicantNotificationProvider({
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
       setState(EMPTY_STATE);
+      setIsLoading(false);
       return;
     }
     try {
@@ -74,13 +75,16 @@ export function ApplicantNotificationProvider({
     };
   }, [isAuthenticated, authLoading, refresh]);
 
-  const acknowledge = useCallback(async () => {
+  // 확인 처리 후, "리셋 직전에 새로 들어왔던" 목록을 호출부에 돌려준다.
+  // 폴링(refresh)이 이 목록을 덮어쓰지 않도록 패널이 직접 들고 있어야 하기 때문이다.
+  const acknowledge = useCallback(async (): Promise<ActivityApplicantCount[]> => {
     try {
       const summary = await checkApplicantNotifications();
-      // summary는 리셋 직전(이전 체크포인트) 기준으로 계산된 값 — 배지는 0, 목록은 그대로 보여준다.
       setState({ totalCount: 0, byActivity: summary.activities });
+      return summary.activities;
     } catch (error) {
       console.error("Failed to acknowledge applicant notifications:", error);
+      return [];
     }
   }, []);
 

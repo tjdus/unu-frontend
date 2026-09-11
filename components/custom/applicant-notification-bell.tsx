@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useApplicantNotification } from "@/lib/contexts/ApplicantNotificationContext";
+import { ActivityApplicantCount } from "@/lib/interfaces/applicant-notification";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { formatUnreadCount } from "@/lib/utils/unread-count";
 import { cn } from "@/lib/utils";
@@ -20,10 +21,16 @@ export function ApplicantNotificationBell({ className }: { className?: string })
     useApplicantNotification();
   const { userRole } = useAuth();
   const [open, setOpen] = useState(false);
+  // 패널을 열 때 받은 목록을 스냅샷으로 들고 있는다.
+  // 컨텍스트 값을 그대로 쓰면 60초 폴링/포커스 갱신이 열려 있는 패널의 목록을 지워버린다.
+  const [entries, setEntries] = useState<ActivityApplicantCount[]>([]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (next) void acknowledge();
+    if (!next) return;
+    // 폴링으로 이미 받아둔 목록을 먼저 보여주고, 확인 처리 응답으로 한 번 더 맞춘다
+    setEntries(byActivity);
+    void acknowledge().then(setEntries);
   };
 
   const linkForActivity = (activityId: string) =>
@@ -63,13 +70,13 @@ export function ApplicantNotificationBell({ className }: { className?: string })
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
               불러오는 중...
             </div>
-          ) : byActivity.length === 0 ? (
+          ) : entries.length === 0 ? (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
               새로운 신청자가 없습니다
             </div>
           ) : (
             <ul className="divide-y">
-              {byActivity.map((entry) => (
+              {entries.map((entry) => (
                 <li key={entry.activityId}>
                   <Link
                     href={linkForActivity(entry.activityId)}
