@@ -245,7 +245,9 @@ export function BudgetLedger({
 
   const selectedQuarter = quarters.find((q) => q.id === selectedQuarterId);
   const selectedQuarterName = selectedQuarter?.name ?? "";
-  const selectedYear = selectedQuarter?.year;
+  // 분기의 year가 아니라 시작일의 달력 연도를 쓴다 — 겨울학기(예: 2025 WINTER = 2026년 1~2월)는 둘이 다르다
+  const startYear = selectedQuarter ? Number(selectedQuarter.startDate?.slice(0, 4)) : NaN;
+  const selectedYear = Number.isFinite(startYear) ? startYear : selectedQuarter?.year;
 
   // 엑셀은 시트 원본과 동일하게 "연도 전체(1~12월)" 단위로 내려받는다.
   async function handleDownloadExcel() {
