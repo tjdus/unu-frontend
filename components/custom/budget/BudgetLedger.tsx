@@ -323,7 +323,7 @@ export function BudgetLedger({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm text-muted-foreground font-medium">
-              분기 총 수입
+              분기 예상 수입
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
@@ -344,7 +344,7 @@ export function BudgetLedger({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm text-muted-foreground font-medium">
-              분기 총 지출
+              분기 예상 지출
             </CardTitle>
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
@@ -363,7 +363,7 @@ export function BudgetLedger({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm text-muted-foreground font-medium">
-              예상 잔액
+              분기 예상 마진
             </CardTitle>
             <Minus className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -379,7 +379,9 @@ export function BudgetLedger({
                 {formatCurrency(totalMargin)}
               </p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">수입 - 지출</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              예상 수입 - 예상 지출
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -538,16 +540,16 @@ export function BudgetLedger({
                 );
               })}
 
-              {/* 합계 */}
+              {/* 합계 — 예상과 실제를 나란히 본다 (보증금처럼 실제만 채워지는 항목이 있어서) */}
               <div className="rounded-lg bg-muted/50 p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">수입 합계</span>
+                  <span className="text-muted-foreground">예상 수입 합계</span>
                   <span className="font-semibold text-blue-600">
                     {formatCurrency(currentPlan.totalIncome)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">지출 합계</span>
+                  <span className="text-muted-foreground">예상 지출 합계</span>
                   <span className="font-semibold text-red-500">
                     {formatCurrency(currentPlan.totalExpense)}
                   </span>
@@ -564,6 +566,34 @@ export function BudgetLedger({
                     {formatCurrency(currentPlan.plannedMargin)}
                   </span>
                 </div>
+
+                <div className="border-t pt-2 flex justify-between text-sm">
+                  <span className="text-muted-foreground">실제 수입 합계</span>
+                  <span className="font-semibold text-blue-600">
+                    {formatCurrency(currentPlan.actualIncome)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">실제 지출 합계</span>
+                  <span className="font-semibold text-red-500">
+                    {formatCurrency(currentPlan.actualExpense)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">실제 마진</span>
+                  <span
+                    className={`font-bold text-lg ${
+                      currentPlan.actualMargin >= 0
+                        ? "text-green-600"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {formatCurrency(currentPlan.actualMargin)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">
+                  다음 달 이월금은 이 실제 마진을 가져옵니다.
+                </p>
               </div>
             </div>
           )}
@@ -625,6 +655,7 @@ export function BudgetLedger({
                             );
                           }}
                           className="h-8 text-sm"
+                          disabled={isAutoSynced}
                         />
                         <div>
                           <Input
@@ -648,7 +679,7 @@ export function BudgetLedger({
                           />
                           {isAutoSynced && (
                             <p className="text-[10px] text-muted-foreground mt-0.5">
-                              자동 계산됨 — 신청/수료 처리 시 반영
+                              예상·실제 모두 자동 계산됨 — 신청/수료 처리 시 반영
                             </p>
                           )}
                         </div>

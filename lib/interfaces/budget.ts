@@ -146,6 +146,8 @@ export interface BudgetPlanResponse {
   totalIncome: number;
   totalExpense: number;
   plannedMargin: number;
+  actualIncome: number;
+  actualExpense: number;
   actualMargin: number;
 }
 
