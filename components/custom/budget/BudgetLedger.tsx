@@ -23,7 +23,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Minus, Download, Upload } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Download,
+  Upload,
+  ListPlus,
+} from "lucide-react";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import {
   BudgetPlanResponse,
@@ -31,6 +49,7 @@ import {
   BudgetCategory,
   CATEGORY_LABEL,
   CATEGORY_GROUPS,
+  DETAIL_MANAGED_CATEGORIES,
 } from "@/lib/interfaces/budget";
 import {
   getBudgetPlansByQuarter,
@@ -42,14 +61,34 @@ import {
 } from "@/lib/api/budget";
 import { StudyDepositDetailDialog } from "./StudyDepositDetailDialog";
 import { BudgetImportDialog } from "./BudgetImportDialog";
+import { ExpenseEntryDialog } from "./ExpenseEntryDialog";
 
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-// 참여자별 상세 내역으로 자동 연동되는 카테고리 — 예산안에서 상세보기 가능, 수동 실제금액 입력 비활성화
-const AUTO_SYNCED_CATEGORIES = new Set<BudgetCategory>([
+// 참여자별 보증금 원장에서 자동 연동되는 카테고리 — 상세는 읽기 전용
+const DEPOSIT_CATEGORIES = new Set<BudgetCategory>([
   "INCOME_STUDY_DEPOSIT",
   "EXPENSE_STUDY_DEPOSIT_REFUND",
 ]);
+
+// 건별 상세 내역으로 직접 관리하는 카테고리 — 상세 창에서 등록·수정
+const DETAIL_MANAGED = new Set<BudgetCategory>(DETAIL_MANAGED_CATEGORIES);
+
+/**
+ * 금액을 사람이 직접 못 고치는 카테고리.
+ * 보증금은 항상, 건별 상세 내역은 그 달에 내역이 있을 때만 잠긴다
+ * (서버가 응답의 entryManagedCategories로 알려준다).
+ */
+function lockedCategories(plan: BudgetPlanResponse | null): Set<BudgetCategory> {
+  return new Set<BudgetCategory>([
+    ...DEPOSIT_CATEGORIES,
+    ...(plan?.entryManagedCategories ?? []),
+  ]);
+}
+
+function amountOrZero(amount: number | null | undefined) {
+  return amount ?? 0;
+}
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("ko-KR", {
@@ -84,6 +123,11 @@ export function BudgetLedger({
   const [detailDialogCategory, setDetailDialogCategory] = useState<
     "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND" | null
   >(null);
+  const [entryDialogCategory, setEntryDialogCategory] = useState<BudgetCategory | null>(null);
+  // 항목별로 예상·실제 중 먼저 쓰기 시작한 칸 ("none"이면 따라 쓰기 중단)
+  const mirrorSourceRef = useRef<
+    Record<number, "plannedAmount" | "actualAmount" | "none" | null>
+  >({});
   const [downloading, setDownloading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +181,7 @@ export function BudgetLedger({
       }
     }
     setFormItems(defaultItems);
+    mirrorSourceRef.current = {};
     setModalOpen(true);
   }
 
@@ -159,6 +204,7 @@ export function BudgetLedger({
       return def;
     });
     setFormItems(merged);
+    mirrorSourceRef.current = {};
     setModalOpen(true);
   }
 
@@ -218,6 +264,26 @@ export function BudgetLedger({
       const updated = prev.map((item, i) =>
         i === idx ? { ...item, [field]: value } : item,
       );
+
+      // 예상·실제가 둘 다 비어 있을 때 먼저 쓰기 시작한 칸의 값을 반대쪽에 따라 채운다.
+      // 반대쪽 칸을 직접 건드리면 그때부터 따라 쓰기를 멈춘다.
+      if (field === "plannedAmount" || field === "actualAmount") {
+        const before = prev[idx];
+        const other = field === "plannedAmount" ? "actualAmount" : "plannedAmount";
+        const bothEmpty =
+          amountOrZero(before?.plannedAmount) === 0 &&
+          amountOrZero(before?.actualAmount) === 0;
+        let source = mirrorSourceRef.current[idx] ?? null;
+        if (source === null && bothEmpty) {
+          source = field;
+        } else if (source !== null && source !== field) {
+          source = "none";
+        }
+        mirrorSourceRef.current[idx] = source;
+        if (source === field) {
+          updated[idx] = { ...updated[idx], [other]: value };
+        }
+      }
 
       if (
         changedCategory === "INCOME_MEMBERSHIP" &&
@@ -287,6 +353,41 @@ export function BudgetLedger({
             : ""}
         </p>
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <ListPlus className="h-3.5 w-3.5 mr-1" />
+                상세 내역
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                {selectedMonth}월 건별 내역 관리
+              </DropdownMenuLabel>
+              {CATEGORY_GROUPS.filter((group) => !group.isIncome).map((group) => {
+                const categories = group.categories.filter((category) =>
+                  DETAIL_MANAGED.has(category),
+                );
+                if (categories.length === 0) return null;
+                return (
+                  <div key={group.label}>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground">
+                      {group.label}
+                    </DropdownMenuLabel>
+                    {categories.map((category) => (
+                      <DropdownMenuItem
+                        key={category}
+                        onSelect={() => setEntryDialogCategory(category)}
+                      >
+                        {CATEGORY_LABEL[category]}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             size="sm"
             variant="outline"
@@ -484,29 +585,33 @@ export function BudgetLedger({
                     </div>
                     <div className="rounded-lg border divide-y">
                       {groupItems.map((item) => {
-                        const isAutoSynced = AUTO_SYNCED_CATEGORIES.has(item.category);
+                        const isDetailed =
+                          DEPOSIT_CATEGORIES.has(item.category) ||
+                          DETAIL_MANAGED.has(item.category);
                         return (
                         <div
                           key={item.id}
                           className={`flex items-center justify-between px-4 py-2.5 text-sm ${
-                            isAutoSynced ? "cursor-pointer hover:bg-muted/50" : ""
+                            isDetailed ? "cursor-pointer hover:bg-muted/50" : ""
                           }`}
                           onClick={
-                            isAutoSynced
+                            DEPOSIT_CATEGORIES.has(item.category)
                               ? () =>
                                   setDetailDialogCategory(
                                     item.category as "INCOME_STUDY_DEPOSIT" | "EXPENSE_STUDY_DEPOSIT_REFUND",
                                   )
-                              : undefined
+                              : DETAIL_MANAGED.has(item.category)
+                                ? () => setEntryDialogCategory(item.category)
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">
                               {CATEGORY_LABEL[item.category]}
                             </span>
-                            {isAutoSynced && (
+                            {isDetailed && (
                               <span className="text-xs text-primary underline underline-offset-2">
-                                상세보기
+                                {DEPOSIT_CATEGORIES.has(item.category) ? "상세보기" : "상세 관리"}
                               </span>
                             )}
                             {item.note && (
@@ -633,7 +738,9 @@ export function BudgetLedger({
                     const idx = formItems.findIndex((i) => i.category === cat);
                     if (idx === -1) return null;
                     const item = formItems[idx];
-                    const isAutoSynced = AUTO_SYNCED_CATEGORIES.has(cat);
+                    const isAutoSynced = lockedCategories(
+                      editingPlan ?? currentPlan,
+                    ).has(cat);
                     return (
                       <div
                         key={cat}
@@ -679,7 +786,9 @@ export function BudgetLedger({
                           />
                           {isAutoSynced && (
                             <p className="text-[10px] text-muted-foreground mt-0.5">
-                              예상·실제 모두 자동 계산됨 — 신청/수료 처리 시 반영
+                              {DEPOSIT_CATEGORIES.has(cat)
+                                ? "예상·실제 모두 자동 계산됨 — 신청/수료 처리 시 반영"
+                                : "예상·실제 모두 자동 계산됨 — 상세 내역에서 관리"}
                             </p>
                           )}
                         </div>
@@ -731,6 +840,17 @@ export function BudgetLedger({
         month={selectedMonth}
         category={detailDialogCategory ?? "INCOME_STUDY_DEPOSIT"}
       />
+
+      {entryDialogCategory && (
+        <ExpenseEntryDialog
+          open
+          onOpenChange={(open) => !open && setEntryDialogCategory(null)}
+          quarterId={selectedQuarterId}
+          month={selectedMonth}
+          category={entryDialogCategory}
+          onChanged={loadPlans}
+        />
+      )}
 
       <BudgetImportDialog
         file={importFile}

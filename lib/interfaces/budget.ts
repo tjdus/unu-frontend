@@ -44,7 +44,7 @@ export const CATEGORY_LABEL: Record<BudgetCategory, string> = {
   EXPENSE_SUPPORT_OTHER: "학회원 지원비 기타",
   EXPENSE_PROJECT_SUPPORT: "프로젝트 지원비",
   EXPENSE_MENTOR_FEE: "멘토 보수",
-  EXPENSE_GPTEE: "지피티",
+  EXPENSE_GPTEE: "LLM",
   EXPENSE_TOKSRAP: "톡서랍",
   EXPENSE_DISCORD: "디스코드",
   EXPENSE_GOOGLE_WORKSPACE: "구글 워크스페이스",
@@ -149,6 +149,8 @@ export interface BudgetPlanResponse {
   actualIncome: number;
   actualExpense: number;
   actualMargin: number;
+  /** 그 달에 건별 상세 내역이 있어 금액을 직접 못 고치는 카테고리 */
+  entryManagedCategories: BudgetCategory[];
 }
 
 export interface BudgetItemRequest {
@@ -198,4 +200,54 @@ export interface StudyDepositLedgerEntryResponse {
   studentId: string | null;
   amount: number;
   occurredAt: string;
+}
+
+/**
+ * 지출 건별 상세 내역으로 적을 수 있는 카테고리.
+ * 그 달에 내역이 있으면 월 금액은 합계로 계산되고(직접 수정 불가),
+ * 없으면 지금까지처럼 월 금액을 직접 입력한다. 백엔드 BudgetCategory와 같은 목록을 유지할 것.
+ */
+export const DETAIL_MANAGED_CATEGORIES: BudgetCategory[] = [
+  // 지원비
+  "EXPENSE_BOOK_SUPPORT",
+  "EXPENSE_SERVER_SUPPORT",
+  "EXPENSE_INTEGRATED_SUPPORT",
+  "EXPENSE_DEV_SUPPORT",
+  "EXPENSE_SUPPORT_OTHER",
+  // 정기결제
+  "EXPENSE_GPTEE",
+  "EXPENSE_TOKSRAP",
+  "EXPENSE_DISCORD",
+  "EXPENSE_GOOGLE_WORKSPACE",
+  "EXPENSE_SUBSCRIPTION_OTHER",
+  // 스터디
+  "EXPENSE_ONLINE_COURSE",
+  // 기타
+  "EXPENSE_MT",
+  "EXPENSE_GENERAL_MEETING",
+  "EXPENSE_OFFICE_SNACK",
+  "EXPENSE_OTHER",
+];
+
+export interface BudgetExpenseEntryResponse {
+  id: string;
+  quarterId: string;
+  month: number;
+  category: BudgetCategory;
+  label: string;
+  plannedAmount: number;
+  actualAmount: number;
+  occurredAt: string | null;
+  note: string | null;
+}
+
+export interface BudgetExpenseEntryRequest {
+  quarterId: string;
+  month: number;
+  category: BudgetCategory;
+  label: string;
+  plannedAmount: number;
+  actualAmount: number;
+  occurredAt?: string | null;
+  note?: string | null;
 }

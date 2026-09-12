@@ -1,5 +1,8 @@
 import axiosInstance from "./axiosInstance";
 import {
+  BudgetCategory,
+  BudgetExpenseEntryRequest,
+  BudgetExpenseEntryResponse,
   BudgetImportResult,
   BudgetPlanRequest,
   BudgetPlanResponse,
@@ -112,4 +115,42 @@ export async function getStudyDepositLedgerEntries(
     { params: { quarterId, month, category } },
   );
   return res.data;
+}
+
+// 지출 건별 상세 내역 (인강 구매비 / 엠티 / 개총·종총 / 간식비 / 기타)
+export async function getExpenseEntries(
+  quarterId: string,
+  month: number,
+  category: BudgetCategory,
+): Promise<BudgetExpenseEntryResponse[]> {
+  const res = await axiosInstance.get<BudgetExpenseEntryResponse[]>(
+    "/budget/expense-entries",
+    { params: { quarterId, month, category } },
+  );
+  return res.data;
+}
+
+export async function createExpenseEntry(
+  data: BudgetExpenseEntryRequest,
+): Promise<BudgetExpenseEntryResponse> {
+  const res = await axiosInstance.post<BudgetExpenseEntryResponse>(
+    "/budget/expense-entries",
+    data,
+  );
+  return res.data;
+}
+
+export async function updateExpenseEntry(
+  id: string,
+  data: BudgetExpenseEntryRequest,
+): Promise<BudgetExpenseEntryResponse> {
+  const res = await axiosInstance.put<BudgetExpenseEntryResponse>(
+    `/budget/expense-entries/${id}`,
+    data,
+  );
+  return res.data;
+}
+
+export async function deleteExpenseEntry(id: string): Promise<void> {
+  await axiosInstance.delete(`/budget/expense-entries/${id}`);
 }
