@@ -130,7 +130,9 @@ export function BudgetImportDialog({ file, onClose, onApplied }: Props) {
 
               {hasErrors && (
                 <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive space-y-1">
-                  <p className="font-medium">오류가 있어 반영할 수 없습니다. 파일을 고친 뒤 다시 올려주세요.</p>
+                  <p className="font-medium">
+                    오류가 있어 반영할 수 없습니다. &lsquo;엑셀 다운로드&rsquo;로 받은 파일을 고쳐서 올려주세요.
+                  </p>
                   <ul className="list-disc pl-5">
                     {result.errors.map((err, i) => (
                       <li key={i}>{err}</li>

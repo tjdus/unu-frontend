@@ -349,7 +349,7 @@ export function BudgetLedger({
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {selectedYear
-            ? `${selectedYear}년 전체(1~12월) 데이터를 기존 시트 양식으로 내려받을 수 있습니다.`
+            ? `${selectedYear}년 전체(1~12월) 데이터를 기존 시트 양식으로 내려받을 수 있습니다. 업로드는 여기서 내려받은 파일을 고쳐서 올려주세요.`
             : ""}
         </p>
         <div className="flex gap-2">
