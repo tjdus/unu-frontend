@@ -13,13 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { searchActivities } from "@/lib/api/activity";
+import { getBudgetPlansByQuarter } from "@/lib/api/budget";
 import { getAllQuarters, getCurrentQuarter } from "@/lib/api/quarter";
 import { ActivityResponse } from "@/lib/interfaces/activity";
+import { BudgetPlanResponse } from "@/lib/interfaces/budget";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import { Wallet, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function BudgetPage() {
   const [activities, setActivities] = useState<ActivityResponse[]>([]);
+  const [plans, setPlans] = useState<BudgetPlanResponse[]>([]);
   const [quarters, setQuarters] = useState<QuarterResponse[]>([]);
   const [selectedQuarterId, setSelectedQuarterId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -40,8 +43,14 @@ export default function BudgetPage() {
   useEffect(() => {
     if (!selectedQuarterId) return;
     setLoading(true);
-    searchActivities({ quarterId: selectedQuarterId })
-      .then((data) => setActivities(data))
+    Promise.all([
+      searchActivities({ quarterId: selectedQuarterId }),
+      getBudgetPlansByQuarter(selectedQuarterId),
+    ])
+      .then(([activityData, planData]) => {
+        setActivities(activityData);
+        setPlans(planData);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [selectedQuarterId]);
@@ -91,28 +100,12 @@ export default function BudgetPage() {
 
   // ── 차트용 데이터 계산 ──────────────────────────────
 
-  // 상태별 예산 분포 (도넛 차트)
-  const STATUS_COLORS: Record<string, string> = {
-    CREATED: "#94a3b8",
-    OPEN: "#3b82f6",
-    ONGOING: "#8b5cf6",
-    COMPLETED: "#22c55e",
-  };
-
-  const statusBudgetMap = activitiesWithBudget.reduce<Record<string, number>>(
-    (acc, a) => {
-      acc[a.status] = (acc[a.status] ?? 0) + (a.budget ?? 0);
-      return acc;
-    },
-    {},
-  );
-  const donutSlices = Object.entries(statusBudgetMap).map(([status, amount]) => ({
-    status,
-    amount,
-    label: getStatusLabel(status),
-    color: STATUS_COLORS[status] ?? "#e2e8f0",
-    pct: totalBudget > 0 ? (amount / totalBudget) * 100 : 0,
-  }));
+  // 예산안 지출 계획 대비 활동 배정 예산
+  // (예산안은 월별 항목의 예상/실제 지출 합계를 양수로 내려준다)
+  const plannedExpense = plans.reduce((sum, p) => sum + p.totalExpense, 0);
+  const actualExpense = plans.reduce((sum, p) => sum + p.actualExpense, 0);
+  const assignedRatio = plannedExpense > 0 ? (totalBudget / plannedExpense) * 100 : 0;
+  const unassignedPlan = plannedExpense - totalBudget;
 
   // 활동 유형별 예산 (가로 막대 차트)
   const typeMap = activitiesWithBudget.reduce<Record<string, { name: string; amount: number }>>(
@@ -129,23 +122,6 @@ export default function BudgetPage() {
 
   const selectedQuarterName =
     quarters.find((q) => q.id === selectedQuarterId)?.name ?? "";
-
-  // ── SVG 도넛 차트 헬퍼 ────────────────────────────────
-  function buildDonutPath(
-    cx: number,
-    cy: number,
-    r: number,
-    startPct: number,
-    endPct: number,
-  ) {
-    const toRad = (p: number) => ((p / 100) * 2 * Math.PI) - Math.PI / 2;
-    const x1 = cx + r * Math.cos(toRad(startPct));
-    const y1 = cy + r * Math.sin(toRad(startPct));
-    const x2 = cx + r * Math.cos(toRad(endPct));
-    const y2 = cy + r * Math.sin(toRad(endPct));
-    const large = endPct - startPct > 50 ? 1 : 0;
-    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-  }
 
   const [activeTab, setActiveTab] = useState<"activity" | "ledger">("ledger");
 
@@ -307,62 +283,62 @@ export default function BudgetPage() {
       {!loading && activitiesWithBudget.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* 상태별 예산 도넛 차트 */}
+          {/* 예산안 지출 계획 대비 활동 배정 예산 */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-semibold">상태별 예산 분포</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                예산안 지출 계획 대비 활동 예산
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-8">
-                {/* SVG 도넛 */}
-                <svg viewBox="0 0 160 160" className="w-36 h-36 shrink-0">
-                  {(() => {
-                    let cursor = 0;
-                    return donutSlices.map((slice) => {
-                      const start = cursor;
-                      const end = cursor + slice.pct;
-                      cursor = end;
-                      // 안쪽 원(도넛 구멍)은 흰색 원으로 덮기
-                      return (
-                        <path
-                          key={slice.status}
-                          d={buildDonutPath(80, 80, 70, start, end)}
-                          fill={slice.color}
-                          stroke="white"
-                          strokeWidth="2"
-                        />
-                      );
-                    });
-                  })()}
-                  {/* 가운데 구멍 */}
-                  <circle cx="80" cy="80" r="42" fill="white" className="fill-background" />
-                  {/* 가운데 텍스트 */}
-                  <text x="80" y="76" textAnchor="middle" className="fill-foreground" style={{ fontSize: 11, fontWeight: 600, fill: "currentColor" }}>
-                    총 예산
-                  </text>
-                  <text x="80" y="92" textAnchor="middle" style={{ fontSize: 9, fill: "#6b7280" }}>
-                    {activitiesWithBudget.length}개 활동
-                  </text>
-                </svg>
-
-                {/* 범례 */}
-                <div className="flex flex-col gap-2 flex-1 min-w-0">
-                  {donutSlices.map((slice) => (
-                    <div key={slice.status} className="flex items-center gap-2">
-                      <span
-                        className="inline-block w-3 h-3 rounded-sm shrink-0"
-                        style={{ backgroundColor: slice.color }}
-                      />
-                      <span className="text-xs text-muted-foreground truncate flex-1">
-                        {slice.label}
-                      </span>
-                      <span className="text-xs font-semibold tabular-nums">
-                        {slice.pct.toFixed(1)}%
+              {plannedExpense === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  이 분기 예산안에 지출 계획이 아직 없습니다. 예산안 탭에서 월별 예상 지출을
+                  입력하면 활동에 배정한 예산과 비교할 수 있습니다.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">예산안 예상 지출</span>
+                      <span className="font-semibold tabular-nums">
+                        {formatCurrency(plannedExpense)}
                       </span>
                     </div>
-                  ))}
+                    <div className="h-3 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full w-full bg-slate-400" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">활동에 배정한 예산</span>
+                      <span className="font-semibold tabular-nums text-blue-600">
+                        {formatCurrency(totalBudget)}
+                      </span>
+                    </div>
+                    <div className="h-3 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500"
+                        style={{ width: `${Math.min(assignedRatio, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      지출 계획의 {assignedRatio.toFixed(1)}%
+                      {unassignedPlan >= 0
+                        ? ` · 아직 활동에 배정하지 않은 계획 ${formatCurrency(unassignedPlan)}`
+                        : ` · 계획보다 ${formatCurrency(-unassignedPlan)} 많이 배정됨`}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between border-t pt-3 text-xs">
+                    <span className="text-muted-foreground">예산안 실제 지출</span>
+                    <span className="font-semibold tabular-nums text-red-500">
+                      {formatCurrency(actualExpense)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
