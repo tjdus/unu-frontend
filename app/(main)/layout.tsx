@@ -8,11 +8,9 @@ export default function Layout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 items-start">
       <Sidebar />
-      <main className="flex-1 overflow-auto min-w-0 [scrollbar-gutter:stable]">
-        {children}
-      </main>
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

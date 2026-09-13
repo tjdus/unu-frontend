@@ -111,7 +111,7 @@ function ActivityRow({
           <span className="flex shrink-0 items-center gap-1">
             <User className="h-3 w-3" />
             <span className="max-w-24 truncate">
-              {activity.assignee.name || activity.assignee.username}
+              {activity.assignee.name}
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-1">

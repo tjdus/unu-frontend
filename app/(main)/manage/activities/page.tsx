@@ -517,7 +517,7 @@ export default function ActivitiesManagementPage() {
                         <ActivityStatusBadge status={activityDisplayStatus(activity)} />
                       </TableCell>
                       <TableCell className="hidden text-center text-sm text-muted-foreground xl:table-cell">
-                        {activity.assignee.name || activity.assignee.username}
+                        {activity.assignee.name}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

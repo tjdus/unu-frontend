@@ -1111,11 +1111,7 @@ export default function ActivityDetails() {
                     ? "강의자"
                     : "담당자"
                 }
-                value={
-                  activity.assignee.name ||
-                  activity.assignee.username ||
-                  activity.assignee.email
-                }
+                value={activity.assignee.name}
               />
 
               <div className="flex items-start gap-3 py-3">

@@ -115,7 +115,7 @@ export function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 z-40 hidden md:flex h-screen w-64 border-r bg-background shrink-0 flex-col">
+      <aside className="sticky top-16 z-40 hidden h-[calc(100dvh-4rem)] w-64 shrink-0 flex-col border-r bg-background md:flex">
         <SidebarContent />
       </aside>
     </>

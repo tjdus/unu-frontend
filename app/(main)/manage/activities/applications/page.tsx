@@ -179,10 +179,11 @@ export default function ActivityApplicationsPage() {
       });
   }, [activityType, participants, search]);
 
-  const visibleParticipantCount = groups.reduce(
-    (sum, group) => sum + group.participants.length,
-    0,
-  );
+  const visibleParticipantCount = new Set(
+    groups.flatMap((group) =>
+      group.participants.map((participant) => participant.user.id),
+    ),
+  ).size;
 
   if (authLoading || loading) {
     return (

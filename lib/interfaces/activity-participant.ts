@@ -56,7 +56,7 @@ export interface ActivityParticipantSummary {
 
 export interface ActivityCapacityResponse {
   participantLimit: number | null;
-  participantCount: number;
+  participantCount: number | null;
   full: boolean;
 }
 

@@ -1,5 +1,5 @@
 import { QuarterResponse } from "./quarter";
-import { AuditorDto, UserResponseDto } from "./auth";
+import { AuditorDto } from "./auth";
 
 export const ACTIVITY_STATUS_MAP: Record<string, string> = {
   CREATED: "생성됨",
@@ -14,13 +14,18 @@ export interface ActivityTypeResponse {
   code: string;
 }
 
+export interface ActivityAssigneeResponse {
+  id: string;
+  name: string;
+}
+
 export interface ActivityResponse {
   id: string;
   title: string;
   description: string;
   status: string;
   activityType: ActivityTypeResponse;
-  assignee: UserResponseDto;
+  assignee: ActivityAssigneeResponse;
   quarter: QuarterResponse;
   startDate: string;
   endDate: string;
