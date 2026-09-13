@@ -248,13 +248,26 @@ export default function RecruitmentForm({
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">설명</Label>
-                <Textarea
-                  id="description"
-                  placeholder="모집에 대한 설명을 입력하세요"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                />
+                {mode === "create" ? (
+                  <div className="relative h-36">
+                    <Textarea
+                      id="description"
+                      placeholder="모집에 대한 설명을 입력하세요"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={6}
+                      className="absolute left-0 top-0 z-30 min-h-36 w-full resize-none bg-background text-sm leading-relaxed shadow-none transition-[width,min-height,box-shadow,transform] duration-200 focus:min-h-64 focus:shadow-[0_18px_45px_rgb(15_23_42_/_0.18)] lg:focus:min-h-96 lg:focus:w-[calc(200%+1.5rem)] lg:focus:-translate-x-8"
+                    />
+                  </div>
+                ) : (
+                  <Textarea
+                    id="description"
+                    placeholder="모집에 대한 설명을 입력하세요"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                  />
+                )}
               </div>
 
               <div className="space-y-2">

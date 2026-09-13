@@ -265,7 +265,7 @@ export default function RecruitmentDetailPage() {
             <div className="mb-6">
               <p className="text-lg font-semibold">{recruitment.title}</p>
               {recruitment.description && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
                   {recruitment.description}
                 </p>
               )}

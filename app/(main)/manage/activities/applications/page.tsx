@@ -65,6 +65,15 @@ function depositLabel(amount: number) {
   return amount > 0 ? `${amount.toLocaleString("ko-KR")}원` : "없음";
 }
 
+function promotionConsentLabel(
+  depositAmount: number,
+  account?: ActivityParticipantRefundAccount,
+) {
+  if (depositAmount <= 0) return "해당 없음";
+  if (!account) return "미확인";
+  return account.promotionAgreedAt ? "동의" : "미동의";
+}
+
 export default function ActivityApplicationsPage() {
   const router = useRouter();
   const { isLoading: authLoading, userRole } = useAuth();
@@ -79,6 +88,10 @@ export default function ActivityApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activityType, setActivityType] = useState("ALL");
+
+  const openMemberDetail = (memberId: string) => {
+    router.push(`/manage/members/${memberId}?from=activity-applications`);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -286,26 +299,41 @@ export default function ActivityApplicationsPage() {
                   <Table className="table-fixed">
                     <TableHeader className="[&_tr]:border-b">
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="h-11 w-[16%] pl-6 text-xs font-semibold text-foreground/70">
+                        <TableHead className="h-11 w-[14%] pl-6 text-xs font-semibold text-foreground/70">
                           신청자
                         </TableHead>
-                        <TableHead className="h-11 w-[14%] text-xs font-semibold text-foreground/70">
+                        <TableHead className="h-11 w-[12%] text-xs font-semibold text-foreground/70">
                           학번
                         </TableHead>
-                        <TableHead className="h-11 w-[30%] text-xs font-semibold text-foreground/70">
+                        <TableHead className="h-11 w-[25%] text-xs font-semibold text-foreground/70">
                           환급 계좌번호
                         </TableHead>
-                        <TableHead className="h-11 w-[16%] text-center text-xs font-semibold text-foreground/70">
+                        <TableHead className="h-11 w-[13%] text-center text-xs font-semibold text-foreground/70">
+                          홍보 활용
+                        </TableHead>
+                        <TableHead className="h-11 w-[14%] text-center text-xs font-semibold text-foreground/70">
                           상태
                         </TableHead>
-                        <TableHead className="h-11 w-[24%] pr-6 text-right text-xs font-semibold text-foreground/70">
+                        <TableHead className="h-11 w-[22%] pr-6 text-right text-xs font-semibold text-foreground/70">
                           신청일
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {activityParticipants.map((participant) => (
-                        <TableRow key={participant.id} className="h-14">
+                        <TableRow
+                          key={participant.id}
+                          className="h-14 cursor-pointer transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                          tabIndex={0}
+                          aria-label={`${participant.user?.name || "신청자"} 학회원 정보 보기`}
+                          onClick={() => openMemberDetail(participant.user.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              openMemberDetail(participant.user.id);
+                            }
+                          }}
+                        >
                           <TableCell className="pl-6 font-medium">
                             {participant.user?.name || "—"}
                           </TableCell>
@@ -316,6 +344,12 @@ export default function ActivityApplicationsPage() {
                               : refundAccounts.has(participant.id)
                                 ? `${refundAccounts.get(participant.id)?.bankName} ${refundAccounts.get(participant.id)?.accountNumber}`
                                 : "미등록"}
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-muted-foreground">
+                            {promotionConsentLabel(
+                              activity.depositAmount,
+                              refundAccounts.get(participant.id),
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             <ParticipantStatusBadge status={participant.status} />
@@ -331,7 +365,20 @@ export default function ActivityApplicationsPage() {
 
                 <div className="divide-y lg:hidden">
                   {activityParticipants.map((participant) => (
-                    <div key={participant.id} className="space-y-3 px-4 py-4">
+                    <div
+                      key={participant.id}
+                      className="cursor-pointer space-y-3 px-4 py-4 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${participant.user?.name || "신청자"} 학회원 정보 보기`}
+                      onClick={() => openMemberDetail(participant.user.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openMemberDetail(participant.user.id);
+                        }
+                      }}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="font-medium">
@@ -349,6 +396,12 @@ export default function ActivityApplicationsPage() {
                           : refundAccounts.has(participant.id)
                             ? `${refundAccounts.get(participant.id)?.bankName} ${refundAccounts.get(participant.id)?.accountNumber}`
                             : "미등록"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        홍보 활용: {promotionConsentLabel(
+                          activity.depositAmount,
+                          refundAccounts.get(participant.id),
+                        )}
                       </p>
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-muted-foreground">
