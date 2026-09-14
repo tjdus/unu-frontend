@@ -1,3 +1,13 @@
+# CNU&U Frontend
+
+서강대학교 학회 운영·활동 관리 서비스 **CNU&U**의 프론트엔드입니다.
+학회원·운영진 화면, 활동 모집·신청, 출석, 공지, 예산 관리 화면을 제공합니다.
+
+- Next.js 16 (App Router, Turbopack), TypeScript
+- shadcn/ui, Tailwind CSS, axios
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
