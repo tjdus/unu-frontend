@@ -23,13 +23,13 @@ export function FormPreview({ schema }: FormPreviewProps) {
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-hidden">
       {schema.questions.map((question, index) => (
-        <Card key={question.id} className="min-w-0 max-w-full">
-          <CardContent className="min-w-0 space-y-4">
+        <Card key={question.id} className="min-w-0 max-w-full overflow-hidden">
+          <CardContent className="min-w-0 max-w-full overflow-hidden space-y-4">
             <div className="space-y-2">
               <div className="flex items-start gap-2">
-                <span className="font-medium flex-1 text-sm whitespace-pre-wrap wrap-break-word">
+                <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm font-medium">
                   {index + 1}. {question.title || "(제목 없음)"}
                 </span>
                 {question.required && (
@@ -62,7 +62,7 @@ export function FormPreview({ schema }: FormPreviewProps) {
                       />
                       <Label
                         htmlFor={`${question.id}-${idx}`}
-                        className="min-w-0 break-words font-normal"
+                        className="min-w-0 flex-1 [overflow-wrap:anywhere] font-normal"
                       >
                         {option || `(선택지 ${idx + 1})`}
                       </Label>
@@ -78,7 +78,7 @@ export function FormPreview({ schema }: FormPreviewProps) {
                       <Checkbox id={`${question.id}-${idx}`} disabled />
                       <Label
                         htmlFor={`${question.id}-${idx}`}
-                        className="min-w-0 break-words font-normal"
+                        className="min-w-0 flex-1 [overflow-wrap:anywhere] font-normal"
                       >
                         {option || `(선택지 ${idx + 1})`}
                       </Label>

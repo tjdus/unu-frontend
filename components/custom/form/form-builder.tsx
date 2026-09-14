@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { QuestionCard } from "./question-card";
 import { FormPreview } from "./form-preview";
@@ -117,8 +116,8 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
           <CardTitle className="text-sm">질문 편집</CardTitle>
         </CardHeader>
         <CardContent className="min-w-0">
-          <ScrollArea className="h-[600px] w-full min-w-0">
-            <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden pr-4">
+          <div className="h-[600px] w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden pr-4">
+            <div className="w-full min-w-0 max-w-full space-y-4">
               {schema.questions.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                   <p className="text-sm">아래 버튼으로 질문을 추가해보세요.</p>
@@ -157,7 +156,7 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
                 onJsonChange={handleJsonChange}
               />
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -167,11 +166,11 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
           <CardTitle className="text-sm">미리보기</CardTitle>
         </CardHeader>
         <CardContent className="min-w-0">
-          <ScrollArea className="h-150 w-full min-w-0">
-            <div className="w-full min-w-0 max-w-full overflow-x-hidden pr-4">
+          <div className="h-150 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden pr-4">
+            <div className="w-full min-w-0 max-w-full">
               <FormPreview schema={schema} />
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>
