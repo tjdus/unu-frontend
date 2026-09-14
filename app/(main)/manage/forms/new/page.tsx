@@ -118,7 +118,7 @@ function NewFormPageInner() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-8 space-y-8">
+    <div className="mx-auto w-full max-w-7xl px-6 py-8 space-y-8">
       <div className="space-y-2">
         <h1 className="text-xl font-bold tracking-tight">신청서 생성하기</h1>
         <p className="text-sm text-muted-foreground max-w-md leading-relaxed">

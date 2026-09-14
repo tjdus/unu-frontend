@@ -86,7 +86,7 @@ export default function EditFormPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8 space-y-8">
+      <div className="mx-auto w-full max-w-7xl px-6 py-8 space-y-8">
         {/* Header */}
         <div className="border-b pb-6 space-y-3">
           <Skeleton className="h-9 w-24" />
@@ -145,7 +145,7 @@ export default function EditFormPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-8 space-y-8">
+    <div className="mx-auto w-full max-w-7xl px-6 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-xl font-bold tracking-tight">신청서 수정하기</h1>
