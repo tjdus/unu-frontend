@@ -11,10 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  Copy,
   BarChart3,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,30 +170,6 @@ export default function ViewFormPage() {
       console.error("Failed to load submissions:", error);
     } finally {
       setSubmissionsLoading(false);
-    }
-  }
-
-  async function handleCopyLink() {
-    const url = `${window.location.origin}/forms/${id}`;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = url;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      toast.success("링크가 클립보드에 복사되었습니다.");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data || "복사에 실패했습니다. 직접 복사해주세요.",
-      );
     }
   }
 
@@ -372,27 +346,6 @@ export default function ViewFormPage() {
                   value={form.template?.title}
                 />
 
-                <InfoRow
-                  icon={<Copy className="h-4 w-4" />}
-                  label="신청서 링크"
-                  value={
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-xs font-mono text-muted-foreground">
-                        {typeof window !== "undefined"
-                          ? `${window.location.origin}/forms/${id}`
-                          : `/forms/${id}`}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={handleCopyLink}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  }
-                />
               </div>
             </CardContent>
           </Card>

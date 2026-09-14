@@ -2,7 +2,7 @@ type BadgeVariant = "secondary" | "destructive" | "outline";
 
 const STATUS_TEXT: Record<string, string> = {
   APPLIED: "제출됨",
-  IN_PROGRESS: "검토중",
+  IN_PROGRESS: "검토 중",
   WAITING: "대기",
   HOLD: "보류",
   PASSED: "승인",

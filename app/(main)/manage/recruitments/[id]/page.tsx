@@ -16,7 +16,11 @@ import {
   Info,
   UserRound,
   UsersRound,
+  Copy,
+  ExternalLink,
+  Link2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,6 +122,44 @@ export default function RecruitmentDetailPage() {
     } catch {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
+    }
+  }
+
+  function getApplicationPath(): string {
+    if (!recruitment) return "";
+    return recruitment.type === "INTERNAL_OPERATION"
+      ? `/operation-recruitments/${recruitment.id}`
+      : `/apply?recruitmentId=${encodeURIComponent(recruitment.id)}`;
+  }
+
+  async function handleCopyApplicationLink() {
+    if (!recruitment) return;
+    const url = new URL(
+      getApplicationPath(),
+      window.location.origin,
+    ).toString();
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      toast.success(
+        recruitment.type === "INTERNAL_OPERATION"
+          ? "신청 링크가 복사되었습니다."
+          : "지원 링크가 복사되었습니다.",
+      );
+    } catch {
+      toast.error("링크를 복사하지 못했습니다.");
     }
   }
 
@@ -314,6 +356,49 @@ export default function RecruitmentDetailPage() {
                     : "지원서 양식"
                 }
                 value={recruitment.form.title}
+              />
+              <InfoRow
+                icon={<Link2 className="h-4 w-4" />}
+                label={
+                  recruitment.type === "INTERNAL_OPERATION"
+                    ? "신청 링크"
+                    : "지원 링크"
+                }
+                value={
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+                      {getApplicationPath()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      aria-label="링크 복사"
+                      title="링크 복사"
+                      onClick={() => void handleCopyApplicationLink()}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      aria-label="링크 열기"
+                      title="링크 열기"
+                      onClick={() =>
+                        window.open(
+                          getApplicationPath(),
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                }
               />
             </div>
           </CardContent>

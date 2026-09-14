@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   getActiveRecruitment,
   getOperationRecruitmentById,
+  getPublicRecruitmentById,
 } from "@/lib/api/recruitment";
 import { RecruitmentResponse } from "@/lib/interfaces/recruitment";
 import { ApplicationAnswers } from "@/lib/interfaces/application";
@@ -48,9 +49,14 @@ function formatPhoneNumber(value: string): string {
 function ApplicationFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const recruitmentId = searchParams.get("operationRecruitmentId");
-  const operation = Boolean(recruitmentId);
-  const backHref = operation ? "/operation-recruitments" : "/apply";
+  const operationRecruitmentId = searchParams.get("operationRecruitmentId");
+  const publicRecruitmentId = searchParams.get("recruitmentId");
+  const operation = Boolean(operationRecruitmentId);
+  const backHref = operation
+    ? `/operation-recruitments/${operationRecruitmentId}`
+    : publicRecruitmentId
+      ? `/apply?recruitmentId=${encodeURIComponent(publicRecruitmentId)}`
+      : "/apply";
   const { userId, isLoading: authLoading } = useAuth();
   const { markItemViewed } = useMenuNotification();
 
@@ -90,9 +96,11 @@ function ApplicationFormContent() {
       }
 
       const [recruitmentData, profile] = await Promise.all([
-        operation && recruitmentId
-          ? getOperationRecruitmentById(recruitmentId)
-          : getActiveRecruitment(),
+        operation && operationRecruitmentId
+          ? getOperationRecruitmentById(operationRecruitmentId)
+          : publicRecruitmentId
+            ? getPublicRecruitmentById(publicRecruitmentId)
+            : getActiveRecruitment(),
         operation && userId ? getMe() : Promise.resolve(null),
       ]);
 
@@ -117,17 +125,24 @@ function ApplicationFormContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [operation, recruitmentId, userId]);
+  }, [operation, operationRecruitmentId, publicRecruitmentId, userId]);
 
   useEffect(() => {
     if (operation && authLoading) return;
     if (operation && !userId) {
-      const target = `/apply/form?operationRecruitmentId=${encodeURIComponent(recruitmentId || "")}`;
+      const target = `/apply/form?operationRecruitmentId=${encodeURIComponent(operationRecruitmentId || "")}`;
       router.replace(`/login?redirect=${encodeURIComponent(target)}`);
       return;
     }
     void loadData();
-  }, [authLoading, loadData, operation, recruitmentId, router, userId]);
+  }, [
+    authLoading,
+    loadData,
+    operation,
+    operationRecruitmentId,
+    router,
+    userId,
+  ]);
 
   useEffect(() => {
     if (!operation || !recruitment?.id) return;
