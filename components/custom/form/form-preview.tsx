@@ -23,10 +23,10 @@ export function FormPreview({ schema }: FormPreviewProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       {schema.questions.map((question, index) => (
-        <Card key={question.id}>
-          <CardContent className="space-y-4">
+        <Card key={question.id} className="min-w-0 max-w-full">
+          <CardContent className="min-w-0 space-y-4">
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <span className="font-medium flex-1 text-sm whitespace-pre-wrap wrap-break-word">
@@ -62,7 +62,7 @@ export function FormPreview({ schema }: FormPreviewProps) {
                       />
                       <Label
                         htmlFor={`${question.id}-${idx}`}
-                        className="font-normal"
+                        className="min-w-0 break-words font-normal"
                       >
                         {option || `(선택지 ${idx + 1})`}
                       </Label>
@@ -78,7 +78,7 @@ export function FormPreview({ schema }: FormPreviewProps) {
                       <Checkbox id={`${question.id}-${idx}`} disabled />
                       <Label
                         htmlFor={`${question.id}-${idx}`}
-                        className="font-normal"
+                        className="min-w-0 break-words font-normal"
                       >
                         {option || `(선택지 ${idx + 1})`}
                       </Label>
