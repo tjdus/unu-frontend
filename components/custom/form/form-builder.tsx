@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { QuestionCard } from "./question-card";
 import { FormPreview } from "./form-preview";
@@ -110,15 +109,15 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+    <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       {/* Left: Edit Section */}
-      <Card>
+      <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle className="text-sm">질문 편집</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-4 pr-4">
+        <CardContent className="min-w-0">
+          <div className="h-[600px] w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden pr-4">
+            <div className="w-full min-w-0 max-w-full space-y-4">
               {schema.questions.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                   <p className="text-sm">아래 버튼으로 질문을 추가해보세요.</p>
@@ -157,21 +156,21 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
                 onJsonChange={handleJsonChange}
               />
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
       {/* Right: Preview Section */}
-      <Card>
+      <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle className="text-sm">미리보기</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-150">
-            <div className="pr-4">
+        <CardContent className="min-w-0">
+          <div className="h-150 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden pr-4">
+            <div className="w-full min-w-0 max-w-full">
               <FormPreview schema={schema} />
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -214,7 +214,7 @@ export function ActivityTable({
               {ACTIVITY_STATUS_MAP[activity.status] || activity.status}
             </TableCell>
             <TableCell>{activity.activityType.name}</TableCell>
-            <TableCell>{activity.assignee.username}</TableCell>
+            <TableCell>{activity.assignee.name}</TableCell>
             <TableCell>{activity.quarter.name}</TableCell>
             <TableCell className="text-center">
               {renderActionButton(activity)}

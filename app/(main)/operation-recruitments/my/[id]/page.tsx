@@ -45,6 +45,7 @@ import { useMenuNotification } from "@/lib/contexts/MenuNotificationContext";
 // 이 페이지는 학회 내부 신청/모집(INTERNAL_OPERATION) 전용이므로 승인/미승인 문구를 쓴다.
 const STATUS_LABELS: Record<string, string> = {
   APPLIED: "제출됨",
+  IN_PROGRESS: "검토 중",
   PASSED: "승인",
   REJECTED: "미승인",
   CANCELED: "취소됨",

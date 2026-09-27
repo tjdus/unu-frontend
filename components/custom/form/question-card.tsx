@@ -81,8 +81,8 @@ export function QuestionCard({
   }
 
   return (
-    <Card className="relative hover:shadow-md transition-shadow">
-      <CardContent className="pt-3 pb-3">
+    <Card className="relative min-w-0 max-w-full overflow-hidden transition-shadow hover:shadow-md">
+      <CardContent className="min-w-0 max-w-full overflow-hidden pt-3 pb-3">
         {/* Collapsed Header */}
         <div className="flex items-center gap-2">
           <div className="cursor-move text-muted-foreground">
@@ -92,12 +92,12 @@ export function QuestionCard({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex-1 flex items-center gap-2 text-left hover:bg-accent/50 rounded px-2 py-1.5 -mx-2 -my-1 transition-colors"
+            className="-mx-2 -my-1 flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded px-2 py-1.5 text-left transition-colors hover:bg-accent/50"
           >
             <Badge variant="secondary" className="shrink-0 text-xs py-0">
               {index + 1}
             </Badge>
-            <span className="font-semibold flex-1 min-w-0 line-clamp-2 text-sm">
+            <span className="line-clamp-2 min-w-0 flex-1 [overflow-wrap:anywhere] text-sm font-semibold">
               {question.title || "(제목 없음)"}
             </span>
             <Badge
@@ -168,7 +168,7 @@ export function QuestionCard({
 
         {/* Expanded Content */}
         {isExpanded && (
-          <div className="mt-3 pt-3 border-t space-y-4">
+          <div className="mt-3 min-w-0 max-w-full space-y-4 overflow-hidden border-t pt-3">
             {/* Question Identity */}
             <div className="space-y-1.5">
               <Label
@@ -189,7 +189,7 @@ export function QuestionCard({
                   }
                 }}
                 rows={2}
-                className="resize-none focus-visible:ring-2"
+                className="max-w-full resize-none [overflow-wrap:anywhere] focus-visible:ring-2"
               />
             </div>
 
@@ -210,7 +210,7 @@ export function QuestionCard({
                 >
                   <SelectTrigger
                     id={`question-type-${question.id}`}
-                    className="focus:ring-2 text-xs"
+                    className="min-w-0 max-w-full text-xs focus:ring-2"
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -249,7 +249,7 @@ export function QuestionCard({
                   </Label>
                   <div className="space-y-1.5">
                     {(question.options || []).map((option, idx) => (
-                      <div key={idx} className="flex gap-1.5">
+                      <div key={idx} className="flex min-w-0 gap-1.5">
                         <Input
                           placeholder={`선택지 ${idx + 1}`}
                           value={option}
@@ -262,7 +262,7 @@ export function QuestionCard({
                               handleAddOption();
                             }
                           }}
-                          className="h-9 text-sm"
+                          className="h-9 min-w-0 text-sm"
                         />
                         <Button
                           type="button"

@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CalendarDays, FileText, Info, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { getActiveRecruitment } from "@/lib/api/recruitment";
+import {
+  getActiveRecruitment,
+  getPublicRecruitmentById,
+} from "@/lib/api/recruitment";
 import { getCurrentQuarter } from "@/lib/api/quarter";
 import { ApiError } from "@/lib/api/publicClient";
 import { RecruitmentResponse } from "@/lib/interfaces/recruitment";
@@ -20,8 +23,10 @@ function formatQuarterLabel(quarter: QuarterResponse): string {
 
 type RecruitmentStatus = "모집중" | "모집 예정" | "모집 마감";
 
-export default function ApplyPage() {
+function ApplyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const recruitmentId = searchParams.get("recruitmentId");
 
   const [recruitment, setRecruitment] = useState<RecruitmentResponse | null>(
     null,
@@ -38,7 +43,9 @@ export default function ApplyPage() {
     setRecruitment(null);
 
     const [recruitmentResult, currentQuarterResult] = await Promise.allSettled([
-      getActiveRecruitment(),
+      recruitmentId
+        ? getPublicRecruitmentById(recruitmentId)
+        : getActiveRecruitment(),
       getCurrentQuarter(),
     ]);
 
@@ -53,14 +60,16 @@ export default function ApplyPage() {
     } else {
       const reason = recruitmentResult.reason;
       const isNotFound = reason instanceof ApiError && reason.status === 404;
-      if (!isNotFound) {
+      if (isNotFound && recruitmentId) {
+        setError("모집 정보를 찾을 수 없습니다.");
+      } else if (!isNotFound) {
         console.error("Failed to load active recruitment:", reason);
         setError("모집 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
       }
     }
 
     setIsLoading(false);
-  }, []);
+  }, [recruitmentId]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -117,8 +126,9 @@ export default function ApplyPage() {
 
   function handleApply() {
     if (!recruitment) return;
-    // Navigate to application form page
-    router.push(`/apply/form`);
+    router.push(
+      `/apply/form?recruitmentId=${encodeURIComponent(recruitment.id)}`,
+    );
   }
 
   if (isLoading) {
@@ -334,5 +344,13 @@ export default function ApplyPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ApplyPage() {
+  return (
+    <Suspense fallback={null}>
+      <ApplyPageContent />
+    </Suspense>
   );
 }

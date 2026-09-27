@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   User,
@@ -82,7 +82,13 @@ const ASSIGNABLE_ROLES = [
 export default function MemberDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const memberId = params.id as string;
+  const fromActivityApplications =
+    searchParams.get("from") === "activity-applications";
+  const backHref = fromActivityApplications
+    ? "/manage/activities/applications"
+    : "/manage/members";
   const { hasRole } = useAuth();
   const isAdmin = hasRole("ADMIN");
   const isManager = hasRole("MANAGER");
@@ -200,10 +206,10 @@ export default function MemberDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/manage/members")}
+          onClick={() => router.push(backHref)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          돌아가기
+          {fromActivityApplications ? "참여 신청 관리로" : "돌아가기"}
         </Button>
       </div>
 
