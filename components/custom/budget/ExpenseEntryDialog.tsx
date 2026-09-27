@@ -242,8 +242,8 @@ export function ExpenseEntryDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead>항목명</TableHead>
-                  <TableHead className="w-32 text-right">예상</TableHead>
-                  <TableHead className="w-32 text-right">실제</TableHead>
+                  <TableHead className="w-32">예상</TableHead>
+                  <TableHead className="w-32">실제</TableHead>
                   <TableHead className="w-36">거래 일자</TableHead>
                   <TableHead className="w-40">비고</TableHead>
                   <TableHead className="w-28" />
@@ -264,10 +264,10 @@ export function ExpenseEntryDialog({
                     return (
                       <TableRow key={entry.id}>
                         <TableCell>{entry.label}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                        <TableCell className="tabular-nums text-muted-foreground">
                           {formatCurrency(Math.abs(entry.plannedAmount))}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">
+                        <TableCell className="tabular-nums font-medium">
                           {formatCurrency(Math.abs(entry.actualAmount))}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -313,7 +313,7 @@ export function ExpenseEntryDialog({
                           type="number"
                           value={row.planned}
                           onChange={(e) => updateEditing(entry.id, "planned", e.target.value)}
-                          className="h-8 text-sm text-right"
+                          className="h-8 text-sm"
                         />
                       </TableCell>
                       <TableCell>
@@ -321,7 +321,7 @@ export function ExpenseEntryDialog({
                           type="number"
                           value={row.actual}
                           onChange={(e) => updateEditing(entry.id, "actual", e.target.value)}
-                          className="h-8 text-sm text-right"
+                          className="h-8 text-sm"
                         />
                       </TableCell>
                       <TableCell>
@@ -380,7 +380,7 @@ export function ExpenseEntryDialog({
                       placeholder="예상"
                       value={draft.planned}
                       onChange={(e) => updateDraftAmount("planned", e.target.value)}
-                      className="h-8 text-sm text-right"
+                      className="h-8 text-sm"
                     />
                   </TableCell>
                   <TableCell>
@@ -389,7 +389,7 @@ export function ExpenseEntryDialog({
                       placeholder="실제"
                       value={draft.actual}
                       onChange={(e) => updateDraftAmount("actual", e.target.value)}
-                      className="h-8 text-sm text-right"
+                      className="h-8 text-sm"
                     />
                   </TableCell>
                   <TableCell>
