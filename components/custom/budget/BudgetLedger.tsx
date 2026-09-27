@@ -4,14 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +48,6 @@ import {
   createBudgetPlan,
   updateBudgetPlan,
   deleteBudgetPlan,
-  getCarryover,
   downloadBudgetExcel,
 } from "@/lib/api/budget";
 import { StudyDepositDetailDialog } from "./StudyDepositDetailDialog";
@@ -100,16 +91,11 @@ function formatCurrency(amount: number) {
 interface Props {
   quarters: QuarterResponse[];
   selectedQuarterId: string;
-  onQuarterChange: (id: string) => void;
-  quartersLoading: boolean;
+  onQuarterChange?: (id: string) => void;
+  quartersLoading?: boolean;
 }
 
-export function BudgetLedger({
-  quarters,
-  selectedQuarterId,
-  onQuarterChange,
-  quartersLoading,
-}: Props) {
+export function BudgetLedger({ quarters, selectedQuarterId }: Props) {
   const [plans, setPlans] = useState<BudgetPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(
@@ -233,8 +219,10 @@ export function BudgetLedger({
         toast.success(`${selectedMonth}월 예산이 생성되었습니다.`);
       }
       setModalOpen(false);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "저장에 실패했습니다.");
+    } catch (e: unknown) {
+      const message = (e as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      toast.error(message ?? "저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -257,7 +245,7 @@ export function BudgetLedger({
   function updateItem(
     idx: number,
     field: keyof BudgetItemRequest,
-    value: any,
+    value: BudgetItemRequest[keyof BudgetItemRequest],
   ) {
     setFormItems((prev) => {
       const changedCategory = prev[idx]?.category;

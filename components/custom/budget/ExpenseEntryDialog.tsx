@@ -41,10 +41,11 @@ function formatCurrency(amount: number) {
 }
 
 // 서버 오류 응답 본문은 문자열(GlobalExceptionHandler)이거나 { message } 형태다
-function errorMessage(e: any, fallback: string): string {
-  const data = e?.response?.data;
+function errorMessage(e: unknown, fallback: string): string {
+  const data = (e as { response?: { data?: unknown } })?.response?.data;
   if (typeof data === "string" && data.trim()) return data;
-  return data?.message ?? fallback;
+  const message = (data as { message?: unknown } | undefined)?.message;
+  return typeof message === "string" ? message : fallback;
 }
 
 interface DraftRow {
