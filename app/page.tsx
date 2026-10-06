@@ -10,6 +10,8 @@ import { TimedAnchorLink } from "@/components/custom/timed-anchor-link";
 import { ScrollReveal } from "@/components/custom/scroll-reveal";
 import { HomeHeroScene } from "@/components/custom/home-hero-scene";
 import { NewsList } from "@/components/custom/news-list";
+import { HomeFaq } from "@/components/custom/home-faq";
+import { HOME_FAQ_ITEMS } from "@/lib/home-faq";
 
 const STATS = [
   { value: "240+", label: "누적 학회원" },
@@ -334,6 +336,8 @@ export default function Home() {
           </span>
         </ScrollReveal>
       </Link>
+
+      <HomeFaq items={HOME_FAQ_ITEMS} />
 
       <section
         id="contact"
