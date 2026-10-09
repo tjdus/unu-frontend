@@ -1,6 +1,12 @@
 import { UserResponseDto, UserSummaryDto } from "../interfaces/auth";
 import { UserRoleUpdateRequestDto } from "../interfaces/role";
 import axiosInstance from "./axiosInstance";
+import { MemberActivitySummary } from "../interfaces/member-activity";
+
+export async function getMemberActivitySummaries(): Promise<MemberActivitySummary[]> {
+  const response = await axiosInstance.get<MemberActivitySummary[]>("/users/activity-summary");
+  return response.data;
+}
 
 // ===== Authenticated APIs =====
 

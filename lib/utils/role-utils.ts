@@ -10,6 +10,8 @@ export function getRoleLabel(role?: string): string {
       return "학회실 관리자";
     case "BLOG_MANAGER":
       return "블로그 에디터";
+    case "ALUMNI":
+      return "Alumni";
     default:
       return "없음";
   }
@@ -28,6 +30,8 @@ export function getRoleBadgeVariant(
     case "LECTURE_ROOM_MANAGER":
       return "secondary";
     case "BLOG_MANAGER":
+      return "secondary";
+    case "ALUMNI":
       return "secondary";
     default:
       return "outline";

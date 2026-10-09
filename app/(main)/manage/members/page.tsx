@@ -51,8 +51,10 @@ import { QuarterResponse } from "@/lib/interfaces/quarter";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/utils/role-utils";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { MemberCreateDialog } from "@/components/custom/member/member-create-dialog";
+import { MemberActivityTab } from "@/components/custom/member/member-activity-tab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type RoleFilter = "ALL" | "MEMBER" | "MANAGER" | "ADMIN";
+type RoleFilter = "ALL" | "MEMBER" | "MANAGER" | "ADMIN" | "LECTURE_ROOM_MANAGER" | "BLOG_MANAGER" | "ALUMNI";
 type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 const MEMBERS_PER_PAGE = 10;
@@ -275,6 +277,12 @@ export default function MembersManagementPage() {
         )}
       </div>
 
+      <Tabs defaultValue="members" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="members">학회원 목록</TabsTrigger>
+          <TabsTrigger value="activity">퇴출 관리</TabsTrigger>
+        </TabsList>
+        <TabsContent value="members">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
@@ -352,6 +360,9 @@ export default function MembersManagementPage() {
                   </SelectItem>
                   <SelectItem value="BLOG_MANAGER" className="text-xs">
                     블로그 에디터
+                  </SelectItem>
+                  <SelectItem value="ALUMNI" className="text-xs">
+                    Alumni
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -576,6 +587,12 @@ export default function MembersManagementPage() {
           )}
         </CardContent>
       </Card>
+
+        </TabsContent>
+        <TabsContent value="activity">
+          <MemberActivityTab quarters={quarters} refreshToken={refreshToken} onRemoved={() => setRefreshToken((value) => value + 1)} />
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
         <AlertDialogContent>
