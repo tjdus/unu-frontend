@@ -6,22 +6,24 @@ import styles from "@/components/custom/editorial.module.css";
 import type { BlogPost } from "@/lib/interfaces/blog";
 
 const BEND = 0.1;
-const SCROLL_DURATION = 1000;
+const MOTION_DURATION = 1000;
+const FIELD_GUARD = 1;
+const FIELD_SPAN = 1 + 2 * FIELD_GUARD;
 let displacementTexture: string | undefined;
 
 function getDisplacementTexture() {
   if (displacementTexture) return displacementTexture;
-  const size = 256;
+  const size = 512;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const context = canvas.getContext("2d");
   if (!context) return;
   const pixels = context.createImageData(size, size);
-  // Encode the inverse radial lookup in red (x) and green (y), centered at 128.
+  // Extend the field beyond the viewport so a scroll frame cannot expose a hard map seam.
   for (let row = 0; row < size; row++) {
-    const y = (row + 0.5) / size * 2 - 1;
+    const y = ((row + 0.5) / size * 2 - 1) * FIELD_SPAN;
     for (let column = 0; column < size; column++) {
-      const x = (column + 0.5) / size * 2 - 1;
+      const x = ((column + 0.5) / size * 2 - 1) * FIELD_SPAN;
       const radiusSquared = x * x + y * y;
       const offset = (row * size + column) * 4;
       pixels.data[offset] = (0.5 - x * radiusSquared / 4) * 255;
@@ -39,44 +41,65 @@ function attribute(element: Element, key: string, value: number | string) {
   if (element.getAttribute(key) !== next) element.setAttribute(key, next);
 }
 
+function setRegion(element: Element, x: number, y: number, width: number, height: number) {
+  attribute(element, "x", x);
+  attribute(element, "y", y);
+  attribute(element, "width", width);
+  attribute(element, "height", height);
+}
+
 export function BlogScrollWarp({ posts }: { posts: BlogPost[] }) {
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = list.current;
+    if (!root) return;
     const texture = getDisplacementTexture();
-    if (!root || !texture) return;
+    if (!texture) return;
     const rows = [...root.children].flatMap((row) => {
-      const media = row.querySelector<HTMLElement>(`.${styles.media}`);
+      const media = row.querySelector<HTMLElement>(`.${styles.blogWarpMedia}`);
+      const filter = row.querySelector("filter");
       const map = row.querySelector("feImage");
       const red = row.querySelector("feFuncR");
       const green = row.querySelector("feFuncG");
       const displacement = row.querySelector("feDisplacementMap");
-      if (!media || !map || !red || !green || !displacement) return [];
+      if (!media || !filter || !map || !red || !green || !displacement) return [];
       attribute(map, "href", texture);
-      return [{ row, media, map, red, green, displacement }];
+      return [{ row, media, filter, map, red, green, displacement }];
     });
     const disabled = window.matchMedia("(prefers-reduced-motion: reduce), (hover: none) and (pointer: coarse)");
     let frame = 0;
     let lastTime = 0;
-    let lastScroll = window.scrollY;
+    let scrollSample = window.scrollY;
+    let scrollTarget = scrollSample;
+    let motionStart = 0;
+    let motionFrom = scrollSample;
     let strength = 0;
-    let glide: { from: number; to: number; start: number } | null = null;
 
     const draw = () => {
-      const width = window.innerWidth;
+      const width = document.documentElement.clientWidth;
       const height = window.innerHeight;
+      if (!width || !height) return;
       const axis = Math.max(width, height);
       const bounds = strength ? rows.map(({ media }) => media.getBoundingClientRect()) : [];
-      rows.forEach(({ row, map, red, green, displacement }, index) => {
+      rows.forEach(({ row, filter, map, red, green, displacement }, index) => {
         const rect = bounds[index];
-        const visible = !!rect && rect.bottom > 0 && rect.top < height;
+        const visible = !!rect && rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < height;
         if (visible) {
-          // Each image samples the same viewport-sized field, not its own center.
-          attribute(map, "x", -rect.left);
-          attribute(map, "y", -rect.top);
-          attribute(map, "width", width);
-          attribute(map, "height", height);
+          // Sample the viewport field, but keep the output padded in thumbnail coordinates.
+          const padX = Math.ceil(width * BEND) + 2;
+          const padY = Math.ceil(height * BEND) + 2;
+          const outputWidth = Math.ceil(rect.width) + 2 * padX;
+          const outputHeight = Math.ceil(rect.height) + 2 * padY;
+          setRegion(filter, -padX, -padY, outputWidth, outputHeight);
+          setRegion(displacement, -padX, -padY, outputWidth, outputHeight);
+          setRegion(
+            map,
+            -rect.left - width * FIELD_GUARD,
+            -rect.top - height * FIELD_GUARD,
+            width * FIELD_SPAN,
+            height * FIELD_SPAN,
+          );
           attribute(red, "slope", width / axis);
           attribute(red, "intercept", (1 - width / axis) / 2);
           attribute(green, "slope", height / axis);
@@ -91,50 +114,38 @@ export function BlogScrollWarp({ posts }: { posts: BlogPost[] }) {
       frame = 0;
       const elapsed = lastTime ? Math.max(1, Math.min(50, now - lastTime)) : 1000 / 60;
       lastTime = now;
+      const scroll = window.scrollY;
+      let inMotion = false;
       if (disabled.matches) {
-        glide = null;
+        scrollSample = scrollTarget = motionFrom = scroll;
         strength = 0;
       } else {
-        if (glide && Math.abs(window.scrollY - lastScroll) > 2) glide = null;
-        if (glide) {
-          const t = Math.min(1, Math.max(0, (now - glide.start) / SCROLL_DURATION));
-          const progress = Math.min(1, 1.001 - 2 ** (-10 * t));
-          window.scrollTo({ top: glide.from + (glide.to - glide.from) * progress, behavior: "instant" });
-          if (progress === 1) glide = null;
+        // Ease only the velocity signal; the page keeps native scrolling.
+        if (scroll !== scrollTarget) {
+          motionFrom = scrollSample;
+          motionStart = now - elapsed;
+          scrollTarget = scroll;
         }
-        const speed = Math.min(1, Math.abs(window.scrollY - lastScroll) * (1000 / 60) / (elapsed * 100));
+        const previousSample = scrollSample;
+        const progress = Math.min(1, (now - motionStart) / MOTION_DURATION);
+        const eased = Math.min(1, 1.001 - 2 ** (-10 * progress));
+        scrollSample = motionFrom + (scrollTarget - motionFrom) * eased;
+        inMotion = eased < 1 && motionFrom !== scrollTarget;
+        const speed = Math.min(1, Math.abs(scrollSample - previousSample) * (1000 / 60) / (elapsed * 100));
         strength += (speed - strength) * (1 - Math.exp(-5 * elapsed / 1000));
-        if (!glide && !speed && strength < 0.002) strength = 0;
+        if (!inMotion && strength < 0.002) strength = 0;
       }
-      lastScroll = window.scrollY;
       draw();
-      if (glide || strength) schedule();
+      if (inMotion || strength) schedule();
       else lastTime = 0;
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
 
-    const onWheel = (event: WheelEvent) => {
-      if (disabled.matches || !event.cancelable || event.defaultPrevented ||
-          event.ctrlKey || event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) ||
-          !event.deltaY) return;
-      const from = window.scrollY;
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const to = Math.max(0, Math.min(max, (glide?.to ?? from) + event.deltaY * unit));
-      if (from === to && !glide) return;
-      event.preventDefault();
-      glide = { from, to, start: performance.now() };
-      lastScroll = from;
-      schedule();
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     disabled.addEventListener("change", schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
-      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       disabled.removeEventListener("change", schedule);
@@ -149,15 +160,19 @@ export function BlogScrollWarp({ posts }: { posts: BlogPost[] }) {
         return (
           <div key={post.id} className={styles.blogWarp} style={{ "--blog-warp-filter": `url(#${id})` } as CSSProperties}>
             <svg className="absolute size-0" aria-hidden="true" focusable="false">
-              <filter id={id} x="-18%" y="-18%" width="136%" height="136%" colorInterpolationFilters="sRGB">
+              <filter id={id} filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                 <feImage preserveAspectRatio="none" result="viewportMap" />
                 <feComponentTransfer in="viewportMap" result="pixelMap">
                   <feFuncR type="linear" />
                   <feFuncG type="linear" />
                 </feComponentTransfer>
-                <feDisplacementMap in="SourceGraphic" in2="pixelMap" scale="0" xChannelSelector="R" yChannelSelector="G" />
+                <feFlood floodColor="rgb(50% 50% 50%)" result="neutral" />
+                <feComposite in="pixelMap" in2="neutral" operator="over" result="filledMap" />
+                <feDisplacementMap in="SourceGraphic" in2="filledMap" scale="0" xChannelSelector="R" yChannelSelector="G" />
               </filter>
             </svg>
+            {/* The barrel warp is off: thumbnails now bend with scroll speed themselves (vvisual-style,
+                see blog-book-stage). Pass `warpThumbnail` again to bring the old warp back. */}
             <EditorialBlogRow post={post} />
           </div>
         );

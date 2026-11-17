@@ -99,8 +99,9 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
 .defaultThumbnailTitle { font-size: 28px; }
 
 .blogRow { display: grid; grid-template-columns: minmax(0, 648fr) minmax(0, 528fr) auto; gap: 48px; align-items: center; padding-block: 44px; }
+.blogWarpMedia { min-width: 0; }
 @media (prefers-reduced-motion: no-preference) {
-  .blogWarp[data-warping]:not(:focus-within) > .blogRow > .media {
+  .blogWarp[data-warping]:not(:focus-within) .blogWarpMedia {
     filter: var(--blog-warp-filter);
   }
 }
@@ -197,7 +198,7 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .hero, .loginBody { padding-block: 72px 88px; }
   .projectTitle { font-size: 68px; }
   .blogRow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; padding-block: 28px; }
-  .blogRow .media { grid-row: span 2; }
+  .blogRow > :is(.media, .blogWarpMedia) { grid-row: span 2; }
   .byline { display: flex; justify-items: start; align-items: baseline; flex-wrap: wrap; text-align: left; max-width: none; }
   .blogText h2, .blogRowCompact .blogText h3 { font-size: 28px; }
   .blogText p { font-size: 17px; }
@@ -217,7 +218,7 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .workGallery, .workGrid { --work-card-width: min(432px, calc(100% - 24px)); gap: 14px; }
   .workTitle { font-size: 24px; }
   .blogRow { grid-template-columns: minmax(0, 1fr); }
-  .blogRow .media { grid-row: auto; }
+  .blogRow > :is(.media, .blogWarpMedia) { grid-row: auto; }
   .blogRowCompact { grid-template-columns: 96px minmax(0, 1fr); gap: 8px 16px; }
   .blogRowCompact .media { grid-row: span 2; align-self: start; }
   .blogRowCompact .defaultThumbnailTitle { font-size: 11px; }

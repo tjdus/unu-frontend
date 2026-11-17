@@ -19,7 +19,11 @@ import { useHomeEntranceDone } from "./use-home-entrance-done";
 
 const GLIDE_MS = 520;
 const QUIET_MS = 200; // wheel silence that ends a gesture (momentum tail)
-const MIN_LOCK_MS = 700;
+// Once a glide (or a held effect) has finished, a *new* swipe is taken right away; only the
+// old gesture's momentum keeps being swallowed. Momentum only ever fades, so a wheel delta
+// that grows again — or changes direction — is a new swipe.
+const NEW_SWIPE_RATIO = 1.25;
+const NEW_SWIPE_SLACK = 3; // px of jitter allowed in a fading momentum tail
 const EDGE = 3;
 const SWIPE_MIN = 24; // px of finger travel that counts as a swipe
 const USER_INPUT_MS = 1200; // scrolling this soon after wheel/touch counts as the user's
@@ -44,17 +48,20 @@ function computeStops(home: HTMLElement) {
     for (let y = top + viewport; y < bottom - viewport; y += viewport) stops.push(y);
     if (rect.height > viewport * 1.1) stops.push(bottom - viewport);
   }
-  stops.push(max);
-  // Stops closer than a fifth of a screen make a pointless nudge: drop them (the page's
-  // last stop wins over its neighbour).
+  // The closing part of the page — 지원 안내 (#recruit) and Contact, down to the bottom —
+  // scrolls freely: stops end before it, so nothing there glides or locks.
+  const contact = home.querySelector<HTMLElement>(":scope > #recruit, :scope > #contact");
+  const freeFrom = contact ? contact.getBoundingClientRect().top + window.scrollY : max + EDGE;
+  if (!contact) stops.push(max);
+  // Stops closer than a fifth of a screen make a pointless nudge: drop them.
   const minGap = viewport * 0.2;
   const sorted = Array.from(new Set(stops.map((y) => Math.round(Math.min(Math.max(0, y), max)))))
+    .filter((y) => y < Math.min(freeFrom, max) - EDGE || (!contact && y === Math.round(max)))
     .sort((a, b) => a - b);
   const result: number[] = [];
   for (const y of sorted) {
     const last = result[result.length - 1];
     if (last === undefined || y - last >= minGap) result.push(y);
-    else if (y === Math.round(max)) result[result.length - 1] = y;
   }
   return result;
 }
@@ -73,8 +80,9 @@ export function HomeScrollStops() {
     let glideTimer = 0;
     let gliding = false;
     let locked = false;
-    let lockedUntil = 0;
     let lastWheel = 0;
+    let lastSize = 0; // previous wheel delta size, to tell new swipes from momentum
+    let lastDirection = 0;
     let lastUserInput = 0;
     let touch: { y: number; controlled: boolean } | null = null;
 
@@ -114,7 +122,6 @@ export function HomeScrollStops() {
       const target = y < frontier - EDGE ? frontier : nextStop(y);
       if (target === undefined) return false;
       locked = true;
-      lockedUntil = performance.now() + MIN_LOCK_MS;
       glideTo(target);
       return true;
     };
@@ -129,24 +136,36 @@ export function HomeScrollStops() {
       lastWheel = now;
       lastUserInput = now;
 
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      const delta = event.deltaY * unit;
+      // A new swipe (vs. the fading momentum of the last one): a pause, a delta that grows
+      // again, or a change of direction.
+      const size = Math.abs(delta);
+      const direction = Math.sign(delta);
+      const newSwipe =
+        gap >= QUIET_MS ||
+        size > lastSize * NEW_SWIPE_RATIO + NEW_SWIPE_SLACK ||
+        (direction !== 0 && lastDirection !== 0 && direction !== lastDirection);
+      lastSize = size;
+      if (direction !== 0) lastDirection = direction;
+
       if (held()) {
-        // Something is playing: swallow input, and treat the rest of this gesture as spent.
+        // Something is playing: swallow input; afterwards only a new swipe gets through.
         event.preventDefault();
         locked = true;
-        lockedUntil = now;
         return;
       }
 
       if (locked) {
-        if (gap < QUIET_MS || now < lockedUntil || gliding) {
+        // During the glide everything waits; after it, the old momentum is swallowed but a
+        // new swipe is taken at once.
+        if (gliding || !newSwipe) {
           event.preventDefault();
           return;
         }
         locked = false;
       }
 
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-      const delta = event.deltaY * unit;
       if (delta <= 0) return; // going up is always free
       if (!atFrontier() && window.scrollY + delta <= frontier) return; // inside seen ground
       if (stepDown()) event.preventDefault();

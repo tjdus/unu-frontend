@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EditorialHero, EditorialMedia } from "@/components/custom/editorial";
 import { WorkGallery, WorkTitle } from "@/components/custom/portfolio/work-gallery";
-import {
-  WorkTitleThumbnail,
-  workTitleThumbnailFrame,
-} from "@/components/custom/portfolio/work-title-thumbnail";
+import dynamic from "next/dynamic";
+import starStyles from "@/components/custom/portfolio/work-star-thumbnail.module.css";
 import styles from "@/components/custom/editorial.module.css";
 import { Button } from "@/components/ui/button";
 import { getCachedPortfolios } from "@/lib/api/portfolio";
@@ -15,6 +13,12 @@ import { orderWorkList, readWorkList } from "@/lib/api/editorial-preview";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import type { PortfolioResponse } from "@/lib/interfaces/portfolio";
 import { cn } from "@/lib/utils";
+
+// 3D star thumbnail (three.js) loads in the browser only.
+const WorkStarThumbnail = dynamic(
+  () => import("@/components/custom/portfolio/work-star-thumbnail").then((module) => module.WorkStarThumbnail),
+  { ssr: false },
+);
 
 function WorkCard({ item, index }: { item: PortfolioResponse; index: number }) {
   const summary = item.description.split(/\r?\n/).map((line) => line.trim())
@@ -29,9 +33,9 @@ function WorkCard({ item, index }: { item: PortfolioResponse; index: number }) {
             {item.startQuarterName} – {item.endQuarterName ?? "진행 중"}
           </span>
         </div>
-        {/* Every project uses the generated title thumbnail, image or not. */}
-        <EditorialMedia className={workTitleThumbnailFrame}>
-          <WorkTitleThumbnail title={item.title} index={index} />
+        {/* Every project uses the 3D star thumbnail, coloured from the palette by position. */}
+        <EditorialMedia className={starStyles.frame}>
+          <WorkStarThumbnail index={index} />
           {item.pinned && <span className={styles.pin}>Pinned</span>}
         </EditorialMedia>
         {summary && <p className="line-clamp-2">{summary.replace(/^#{1,6}\s+/, "")}</p>}

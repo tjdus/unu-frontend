@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { BlogBookThumbnail, blogBookFrame } from "@/components/custom/blog/blog-book-thumbnail";
 import { DefaultBlogThumbnail } from "@/components/custom/blog/default-blog-thumbnail";
 import { HomeScrollDivider } from "@/components/custom/home-scroll-divider";
 import type { BlogPost } from "@/lib/interfaces/blog";
@@ -102,11 +103,21 @@ export function EditorialMedia({ src, alt, fallbackTitle, className, children }:
   );
 }
 
-export function EditorialBlogRow({ post, compact = false }: { post: BlogPost; compact?: boolean }) {
+export function EditorialBlogRow({ post, compact = false, warpThumbnail = false }: {
+  post: BlogPost;
+  compact?: boolean;
+  warpThumbnail?: boolean;
+}) {
   const Heading = compact ? "h3" : "h2";
+  // Every post uses the floating booklet with turning pages as its thumbnail.
+  const thumbnail = (
+    <EditorialMedia className={blogBookFrame}>
+      <BlogBookThumbnail seed={post.id} />
+    </EditorialMedia>
+  );
   return (
     <Link href={`/blog/${post.id}`} className={cn(styles.blogRow, compact && styles.blogRowCompact)}>
-      <EditorialMedia src={post.thumbnailUrl} fallbackTitle={post.title} />
+      {warpThumbnail ? <div className={styles.blogWarpMedia}>{thumbnail}</div> : thumbnail}
       <div className={styles.blogText}>
         <span className={styles.chip}>{post.category === "tech" ? "Tech" : "Essay"}</span>
         <Heading>{post.title}</Heading>

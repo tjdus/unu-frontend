@@ -4,6 +4,11 @@ import { useLayoutEffect } from "react";
 
 export function HomeContactArrival() {
   useLayoutEffect(() => {
+    // Next's client router cache keeps the hash from the first visit to "/#contact" and
+    // appends it again on the next one ("/#contact#contact"). Put the address back.
+    if (/^#contact(#contact)+$/.test(location.hash)) {
+      history.replaceState(history.state, "", `${location.pathname}${location.search}#contact`);
+    }
     if (location.hash !== "#contact") return;
     const home = document.getElementById("home-top");
     const contact = document.getElementById("contact");
