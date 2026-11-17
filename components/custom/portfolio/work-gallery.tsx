@@ -3,6 +3,38 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import styles from "@/components/custom/editorial.module.css";
 
+export function WorkTitle({ title }: { title: string }) {
+  const viewportRef = useRef<HTMLHeadingElement>(null);
+  const trackRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    if (!viewport || !track) return;
+
+    const update = () => {
+      const overflow = track.offsetWidth - viewport.clientWidth;
+      viewport.toggleAttribute("data-overflow", overflow > 0);
+      viewport.style.setProperty("--work-title-offset", `${-Math.max(0, overflow)}px`);
+      viewport.style.setProperty("--work-title-duration", `${Math.max(500, overflow * 8)}ms`);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    observer.observe(track);
+    update();
+    return () => observer.disconnect();
+  }, [title]);
+
+  return (
+    <h2 ref={viewportRef} className={styles.workTitle} title={title}>
+      <span ref={trackRef} className={styles.workTitleTrack}>
+        <span>{title}</span>
+        <span aria-hidden="true">{title}</span>
+      </span>
+    </h2>
+  );
+}
+
 export function WorkGallery({ children }: { children: ReactNode }) {
   const trackRef = useRef<HTMLDivElement>(null);
 

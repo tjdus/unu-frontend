@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { HomeLink } from "@/components/custom/home-link";
 import { useRouter } from "next/navigation";
 import { Activity, ArrowUpRight, LogOut, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,9 @@ export function AppTopBar() {
       >
         <Menu className="size-5" />
       </Button>
-      <Link href="/" className="mr-1 md:hidden" aria-label="CNU 홈">
+      <HomeLink className="mr-1 md:hidden" aria-label="CNU 홈">
         <Image src="/cnu-header-logo.png" alt="" width={26} height={26} className="rounded-md" />
-      </Link>
+      </HomeLink>
 
       <span className="flex-1" />
 

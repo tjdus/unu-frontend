@@ -51,17 +51,25 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
 .workGallery[data-dragging] { user-select: none; }
 .workGallery[data-dragging] :is(a, img) { cursor: grabbing; }
 .workCardSlot, .workGrid > div { flex: 0 0 var(--work-card-width); min-width: 0; }
-.workCard { display: grid; align-content: start; gap: 12px; min-width: 0; transition: transform 350ms cubic-bezier(.22, 1, .36, 1); }
+.workCard { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 12px; min-width: 0; transition: transform 350ms cubic-bezier(.22, 1, .36, 1); }
 .workGallery[data-moving] .workCard { transform: scale(.975); }
 .workGallery:not([data-moving]) .workCard:focus-visible { transform: translateY(-8px); }
 .page .workCard:focus-visible { outline-offset: -2px; }
 .workCard .media { aspect-ratio: 4 / 3; }
 .workMeta { display: grid; gap: 6px; }
-.workTitle { display: grid; overflow: hidden; font-size: 28px; font-weight: 300; line-height: 1.25; overflow-wrap: anywhere; }
-.workTitle span { grid-area: 1 / 1; transition: transform 420ms cubic-bezier(.22, 1, .36, 1); }
-.workTitle span + span { transform: translateY(110%); }
-.workCard:focus-visible .workTitle span:first-child { transform: translateY(-110%); }
-.workCard:focus-visible .workTitle span + span { transform: none; }
+.workTitle { min-width: 0; overflow: hidden; font-size: 28px; font-weight: 300; line-height: 1.25; }
+.workTitleTrack { display: grid; width: max-content; white-space: nowrap; }
+.workTitleTrack > span { grid-area: 1 / 1; }
+.workTitle:not([data-overflow]) .workTitleTrack > span { transition: transform 420ms cubic-bezier(.22, 1, .36, 1); }
+.workTitleTrack > span + span { transform: translateY(110%); }
+.workTitle[data-overflow] .workTitleTrack > span + span { display: none; }
+.workTitle[data-overflow] .workTitleTrack { transition: transform 300ms ease-out; }
+.workCard:focus-visible .workTitle:not([data-overflow]) .workTitleTrack > span:first-child { transform: translateY(-110%); }
+.workCard:focus-visible .workTitle:not([data-overflow]) .workTitleTrack > span + span { transform: none; }
+.workCard:focus-visible .workTitle[data-overflow] .workTitleTrack {
+  transform: translateX(var(--work-title-offset));
+  transition: transform var(--work-title-duration) ease-in-out;
+}
 .workCard p { color: var(--deep-muted); font-size: 16px; overflow-wrap: anywhere; }
 .pin { position: absolute; z-index: 1; inset: 12px auto auto 12px; padding: 4px 8px; border-radius: 4px; color: var(--deep-surface); background: var(--deep-accent); font-size: 11px; text-transform: uppercase; }
 
@@ -75,8 +83,16 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .workGallery:not([data-moving], [data-dragging]) .workCard:hover { transform: translateY(-8px); }
   .workGallery:not([data-dragging]) .workCard:hover .mediaImage { transform: none; }
   .workGallery:not([data-dragging]) .workCard:hover .workTitle { color: var(--deep-accent); }
-  .workGallery:not([data-dragging]) .workCard:hover .workTitle span:first-child { transform: translateY(-110%); }
-  .workGallery:not([data-dragging]) .workCard:hover .workTitle span + span { transform: none; }
+  .workGallery:not([data-dragging]) .workCard:hover .workTitle:not([data-overflow]) .workTitleTrack > span:first-child { transform: translateY(-110%); }
+  .workGallery:not([data-dragging]) .workCard:hover .workTitle:not([data-overflow]) .workTitleTrack > span + span { transform: none; }
+  .workGallery:not([data-dragging]) .workCard:hover .workTitle[data-overflow] .workTitleTrack {
+    transform: translateX(var(--work-title-offset));
+    transition: transform var(--work-title-duration) ease-in-out;
+  }
+}
+@media (hover: none) {
+  .workTitle[data-overflow] { overflow-x: auto; scrollbar-width: none; }
+  .workCard:focus-visible .workTitle[data-overflow] .workTitleTrack { transform: none; }
 }
 .defaultThumbnail { height: 100%; border-radius: 0; background: transparent; }
 .defaultThumbnail::after { display: none; }
@@ -228,6 +244,6 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
 
 @media (prefers-reduced-motion: reduce) {
   .workGallery .workCard, .workGallery .mediaImage, .blogRow .mediaImage { transition: none; transform: none !important; }
-  .workGallery .workTitle span:first-child { transition: none; transform: none !important; }
-  .workTitle span + span { display: none; }
+  .workGallery .workTitleTrack, .workGallery .workTitleTrack > span { transition: none; transform: none !important; }
+  .workTitleTrack > span + span { display: none; }
 }

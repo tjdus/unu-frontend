@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { HomeLink } from "@/components/custom/home-link";
 import { usePathname } from "next/navigation";
 import { Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -90,14 +91,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col gap-3 px-4 py-6">
-      <Link
-        href="/"
+      <HomeLink
         onClick={() => onNavigate?.()}
         className="w-fit pl-2 transition-opacity hover:opacity-80"
         aria-label="CNU 홈"
       >
         <Image src="/cnu-header-logo.png" alt="" width={28} height={28} className="rounded-[7px]" />
-      </Link>
+      </HomeLink>
 
       <SidebarUserCard onNavigate={onNavigate} />
 
@@ -142,9 +142,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </ScrollArea>
 
       <div className="flex flex-col gap-0.5">
-        <Link href="/" onClick={() => onNavigate?.()} className={cn(ITEM, ITEM_IDLE)}>
+        <HomeLink onClick={() => onNavigate?.()} className={cn(ITEM, ITEM_IDLE)}>
           홈으로
-        </Link>
+        </HomeLink>
         <button
           type="button"
           onClick={() => {

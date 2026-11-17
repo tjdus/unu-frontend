@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EditorialHero, EditorialMedia } from "@/components/custom/editorial";
-import { WorkGallery } from "@/components/custom/portfolio/work-gallery";
+import { WorkGallery, WorkTitle } from "@/components/custom/portfolio/work-gallery";
 import styles from "@/components/custom/editorial.module.css";
 import { Button } from "@/components/ui/button";
 import { getCachedPortfolios } from "@/lib/api/portfolio";
@@ -20,10 +20,7 @@ function WorkCard({ item }: { item: PortfolioResponse }) {
     <div className={styles.workCardSlot}>
       <Link href={`/portfolio/${item.id}`} className={styles.workCard}>
         <div className={styles.workMeta}>
-          <h2 className={styles.workTitle}>
-            <span>{item.title}</span>
-            <span aria-hidden="true">{item.title}</span>
-          </h2>
+          <WorkTitle title={item.title} />
           <span className={styles.metaNumber}>
             {item.startQuarterName} – {item.endQuarterName ?? "진행 중"}
           </span>

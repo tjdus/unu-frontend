@@ -10,6 +10,7 @@ export function HomeContactArrival() {
     if (!home || !contact) return;
 
     const align = () => {
+      if (location.hash !== "#contact") return;
       const top = contact.getBoundingClientRect().top + window.scrollY;
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const destination = Math.max(0, Math.min(top, max));

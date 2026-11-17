@@ -19,7 +19,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { useSidebarBadges } from "@/lib/hooks/useSidebarBadges";
 import { PublicNavLinks } from "@/components/custom/public-nav-links";
-import { TimedAnchorLink } from "@/components/custom/timed-anchor-link";
+import { HomeLink } from "@/components/custom/home-link";
 import { menuConfig } from "@/lib/constants/menu-config";
 import aboutStyles from "@/app/about/about.module.css";
 import homeStyles from "./home-deep.module.css";
@@ -167,7 +167,7 @@ export function NavigationBar() {
         <div className={aboutStyles.headerInner}>
           <PublicNavLinks variant="deep" />
           {rightContent()}
-          <Link href="/" className={aboutStyles.brand} aria-label="CNU 홈">
+          <HomeLink className={aboutStyles.brand} aria-label="CNU 홈">
             <Image
               src="/cnu-header-logo.png"
               alt=""
@@ -176,7 +176,7 @@ export function NavigationBar() {
               className="rounded-[7px]"
               priority
             />
-          </Link>
+          </HomeLink>
         </div>
       </header>
     );
@@ -196,10 +196,7 @@ export function NavigationBar() {
         </Button>
       )}
 
-      <TimedAnchorLink
-        href="/"
-        targetId="home-top"
-        duration={900}
+      <HomeLink
         className="relative size-8 shrink-0 overflow-hidden rounded-lg transition-opacity hover:opacity-80"
       >
         <Image
@@ -211,7 +208,7 @@ export function NavigationBar() {
           priority
         />
         <span className="sr-only">CNU 홈</span>
-      </TimedAnchorLink>
+      </HomeLink>
 
       <div className="ml-auto flex h-16 items-stretch">
         <PublicNavLinks

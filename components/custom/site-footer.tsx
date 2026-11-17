@@ -1,12 +1,11 @@
 import Image from "next/image";
-import Link from "next/link";
+import { HomeLink } from "@/components/custom/home-link";
 
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-auto shrink-0 border-t border-white/10 bg-[#14231b]">
       <div className="mx-auto flex min-h-24 w-full max-w-[1180px] flex-col items-start justify-center gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <Link
-          href="/"
+        <HomeLink
           className="flex items-center gap-3 transition-opacity hover:opacity-70"
           aria-label="CNU 홈"
         >
@@ -22,7 +21,7 @@ export function SiteFooter() {
           <span className="font-cnu-body text-lg font-bold text-white">
             CNU
           </span>
-        </Link>
+        </HomeLink>
 
         <div className="flex max-w-full flex-col gap-1 text-left text-xs leading-relaxed text-white/65 sm:items-end sm:text-right">
           <a
