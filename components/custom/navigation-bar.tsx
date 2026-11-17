@@ -55,7 +55,9 @@ export function NavigationBar() {
   // Blog / Work pages, including their create and edit screens, sit on the deep editorial surface.
   const isEditorial =
     pathname === "/login" ||
-    ((route === "portfolio" || route === "blog") && (!action || action === "edit"));  const isDeepHeader = pathname === "/about" || isEditorial;
+    ((route === "portfolio" || route === "blog") && (!action || action === "edit"));
+  // About, its seven section pages (/about/[slug]) and their post editors share the deep About header.
+  const isDeepHeader = route === "about" || isEditorial;
 
   const rightContent = () => {
     if (isLoading) return isDeepHeader ? null : <div className="h-16 w-20 sm:w-[133px]" />;

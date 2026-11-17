@@ -1,0 +1,207 @@
+/* About · 소개 글 작성 / 수정 (Figma "About · 소개 글 작성 (/about/[slug]/create · edit)"). */
+.editor {
+  display: grid;
+  gap: 32px;
+  width: 100%;
+  max-width: calc(840px + 2 * var(--about-inset));
+  margin-inline: auto;
+  padding: 72px var(--about-inset) 120px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: start;
+  color: var(--deep-muted);
+  font-size: 13px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  transition: color 160ms ease;
+}
+
+.back:hover {
+  color: var(--deep-on);
+}
+
+.title {
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.form {
+  display: grid;
+  gap: 32px;
+}
+
+.field {
+  display: grid;
+  gap: 10px;
+}
+
+.label {
+  color: var(--deep-on);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 17px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1px solid var(--deep-outline);
+  border-radius: 4px;
+  padding: 14px 16px;
+  background: transparent;
+  color: var(--deep-on);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 20px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.textarea {
+  min-height: 180px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--deep-muted);
+  opacity: 1;
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--deep-accent);
+  box-shadow: inset 0 0 0 1px var(--deep-accent);
+  outline: none;
+}
+
+.upload {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-block: 56px;
+  border: 1px dashed var(--deep-outline);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--deep-on);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.upload:hover,
+.upload[data-over] {
+  border-color: var(--deep-accent);
+  background: color-mix(in srgb, var(--deep-on) 6%, transparent);
+}
+
+.uploadText {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 300;
+}
+
+.uploadHint {
+  color: var(--deep-muted);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+
+.preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 484 / 250;
+  overflow: hidden;
+  border: 1px solid var(--deep-outline);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 160ms ease, background-color 160ms ease;
+}
+
+.preview:hover .previewLabel,
+.preview[data-over] .previewLabel,
+.preview:focus-visible .previewLabel {
+  background: rgb(0 0 0 / 0.35);
+  opacity: 1;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 20px;
+  border: 1px solid var(--deep-on);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.cancel {
+  background: transparent;
+  color: var(--deep-on);
+}
+
+.cancel:hover {
+  background: color-mix(in srgb, var(--deep-on) 10%, transparent);
+}
+
+.save {
+  background: var(--deep-on);
+  color: var(--deep-surface);
+}
+
+.save:hover:not(:disabled) {
+  border-color: var(--deep-accent);
+  background: var(--deep-accent);
+}
+
+.save:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.back:focus-visible,
+.upload:focus-visible,
+.preview:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--deep-accent);
+  outline-offset: 3px;
+}
