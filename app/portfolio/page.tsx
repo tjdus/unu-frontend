@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EditorialHero, EditorialMedia } from "@/components/custom/editorial";
 import { WorkGallery, WorkTitle } from "@/components/custom/portfolio/work-gallery";
+import {
+  WorkTitleThumbnail,
+  workTitleThumbnailFrame,
+} from "@/components/custom/portfolio/work-title-thumbnail";
 import styles from "@/components/custom/editorial.module.css";
 import { Button } from "@/components/ui/button";
 import { getCachedPortfolios } from "@/lib/api/portfolio";
@@ -12,7 +16,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import type { PortfolioResponse } from "@/lib/interfaces/portfolio";
 import { cn } from "@/lib/utils";
 
-function WorkCard({ item }: { item: PortfolioResponse }) {
+function WorkCard({ item, index }: { item: PortfolioResponse; index: number }) {
   const summary = item.description.split(/\r?\n/).map((line) => line.trim())
     .find((line) => line && !line.startsWith("![") && !line.startsWith("```"));
 
@@ -25,7 +29,9 @@ function WorkCard({ item }: { item: PortfolioResponse }) {
             {item.startQuarterName} – {item.endQuarterName ?? "진행 중"}
           </span>
         </div>
-        <EditorialMedia src={item.thumbnailUrl}>
+        {/* Every project uses the generated title thumbnail, image or not. */}
+        <EditorialMedia className={workTitleThumbnailFrame}>
+          <WorkTitleThumbnail title={item.title} index={index} />
           {item.pinned && <span className={styles.pin}>Pinned</span>}
         </EditorialMedia>
         {summary && <p className="line-clamp-2">{summary.replace(/^#{1,6}\s+/, "")}</p>}
@@ -72,7 +78,7 @@ export default function PortfolioPage() {
           </div>
         ) : sorted.length ? (
           <WorkGallery>
-            {sorted.map((item) => <WorkCard key={item.id} item={item} />)}
+            {sorted.map((item, index) => <WorkCard key={item.id} item={item} index={index} />)}
           </WorkGallery>
         ) : (
           <p className={styles.status}>{failed ? "프로젝트를 불러오지 못했습니다." : "등록된 프로젝트가 없습니다."}</p>

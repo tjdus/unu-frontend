@@ -59,6 +59,13 @@
   background: color-mix(in srgb, var(--deep-on, #dcebd2) 5%, transparent);
 }
 
+/* The Work object floats on the section itself: no outline, no tinted panel. */
+.bare {
+  border-color: transparent;
+  background: transparent;
+  overflow: visible;
+}
+
 /* Taller than the frame so it can drift without showing edges. */
 .parallax {
   position: absolute;

@@ -1,13 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { DefaultBlogThumbnail } from "@/components/custom/blog/default-blog-thumbnail";
-import { orderWorkList, readBlogList, readWorkList } from "@/lib/api/editorial-preview";
-import type { BlogPost } from "@/lib/interfaces/blog";
 import styles from "./home-works.module.css";
+
+// Both cards show a 3D object instead of a photo; three.js loads only on the client.
+const HomeWorkObject = dynamic(
+  () => import("./home-work-object").then((module) => module.HomeWorkObject),
+  { ssr: false },
+);
+const HomeBlogObject = dynamic(
+  () => import("./home-blog-object").then((module) => module.HomeBlogObject),
+  { ssr: false },
+);
+
+const OBJECTS = { work: HomeWorkObject, blog: HomeBlogObject };
 
 type HomeWorkItem = {
   title: string;
@@ -15,7 +26,13 @@ type HomeWorkItem = {
   description: string;
   image?: string;
   fallbackTitle?: string;
+  object?: keyof typeof OBJECTS;
 };
+
+const ITEMS: HomeWorkItem[] = [
+  { title: "Work", href: "/portfolio", description: "CNU가 만들어온 활동을 소개합니다.", object: "work" },
+  { title: "Blog", href: "/blog", description: "기술과 경험, 그리고 생각을 나눕니다.", object: "blog" },
+];
 
 // Inner-photo parallax travel (fraction of the frame height, each way).
 const PARALLAX = 0.08;
@@ -28,24 +45,7 @@ const PARALLAX = 0.08;
 export function HomeWorks({ className }: { className?: string }) {
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
-  const [workImage, setWorkImage] = useState<string>();
-  const [firstPost, setFirstPost] = useState<Pick<BlogPost, "title" | "thumbnailUrl">>();
-
-  useEffect(() => {
-    let cancelled = false;
-    void readWorkList().then((projects) => {
-      if (!cancelled) setWorkImage(orderWorkList(projects)[0]?.thumbnailUrl);
-    }).catch(() => undefined);
-    void readBlogList().then(([post]) => {
-      if (!cancelled && post) setFirstPost({ title: post.title, thumbnailUrl: post.thumbnailUrl });
-    }).catch(() => undefined);
-    return () => { cancelled = true; };
-  }, []);
-
-  const items = useMemo<HomeWorkItem[]>(() => [
-    { title: "Work", href: "/portfolio", description: "CNU가 만들어온 활동을 소개합니다.", image: workImage },
-    { title: "Blog", href: "/blog", description: "기술과 경험, 그리고 생각을 나눕니다.", image: firstPost?.thumbnailUrl, fallbackTitle: firstPost?.title },
-  ], [workImage, firstPost]);
+  const items = ITEMS;
 
   // Highlight the title of the card crossing the middle of the viewport.
   useEffect(() => {
@@ -151,8 +151,13 @@ export function HomeWorks({ className }: { className?: string }) {
               className={styles.card}
             >
               <Link href={item.href} className={styles.photo} aria-label={`${item.title} 바로가기`}>
-                <span className={styles.frame}>
-                  {item.image ? (
+                <span className={`${styles.frame} ${item.object ? styles.bare : ""}`}>
+                  {item.object ? (
+                    (() => {
+                      const ItemObject = OBJECTS[item.object];
+                      return <ItemObject />;
+                    })()
+                  ) : item.image ? (
                     <span data-parallax className={styles.parallax}>
                       <Image
                         src={item.image}

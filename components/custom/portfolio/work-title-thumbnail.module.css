@@ -1,0 +1,88 @@
+/* Generated Work thumbnail (WorkTitleThumbnail). The word starts --inset in from the left
+   and is sized from the frame width (container units) so it runs off the right edge. */
+/* The media frame behind the thumbnail: no light background, so no bright rim shows at
+   the antialiased edge when cards scale while the gallery moves. */
+.frame.frame {
+  /* doubled class: wins over the shared .media background regardless of stylesheet order */
+  background: transparent;
+}
+
+.thumb {
+  position: absolute;
+  /* Bleed past the rounded frame's edge so its antialiasing never shows a seam. */
+  inset: -1px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  container-type: size;
+  perspective: 900px;
+  background:
+    radial-gradient(120% 90% at 18% 8%, var(--ground-glow, #2b8a5e) 0%, transparent 62%),
+    linear-gradient(160deg, var(--ground-from, #1c7451) 0%, var(--ground-to, #10603f) 100%);
+}
+
+.word {
+  display: block;
+  flex: none;
+  margin-left: var(--inset, 9cqw);
+  color: #f4f6f2;
+  font-family: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  /* ~4 letters span about 1.12 frame widths → the last letter is cut at the right edge. */
+  font-size: calc(112cqw / var(--ems, 3));
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  text-shadow: var(--extrusion);
+  transform: translateY(var(--shift-y, 0)) rotateX(var(--rx, 18deg)) rotateY(var(--ry, -16deg))
+    rotateZ(var(--rz, 0deg));
+  /* Pivot at the start of the word so the left margin holds while it tilts. */
+  transform-origin: 0 60%;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  user-select: none;
+}
+
+/* CNU logo: a small tile tucked into the bottom-left corner, extruded
+   with stacked drop-shadows (darker green sides) and tilted like the letters. */
+.logo {
+  position: absolute;
+  bottom: 7cqh;
+  left: 5cqw;
+  width: 9cqw;
+  aspect-ratio: 1;
+  transform: rotateX(22deg) rotateY(-18deg);
+  transform-origin: 0 100%;
+  filter: drop-shadow(1px 1px 0 #4fa47f) drop-shadow(1px 1px 0 #449672) drop-shadow(1px 1px 0 #3a8765)
+    drop-shadow(1px 1px 0 #317858) drop-shadow(1px 1px 0 #296a4c) drop-shadow(5px 9px 8px rgb(0 0 0 / 0.3));
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hovering the card turns the block slightly toward the viewer. */
+@media (hover: hover) {
+  :global(a):hover .logo {
+    transform: rotateX(10deg) rotateY(-8deg) translateY(-4%);
+  }
+
+  :global(a):hover .word {
+    transform: translateY(calc(var(--shift-y, 0) - 3%)) rotateX(calc(var(--rx, 18deg) * 0.45))
+      rotateY(calc(var(--ry, -16deg) * 0.4)) rotateZ(calc(var(--rz, 0deg) * 0.5));
+  }
+}
+
+:global(a):focus-visible .word {
+  transform: translateY(calc(var(--shift-y, 0) - 3%)) rotateX(calc(var(--rx, 18deg) * 0.45))
+    rotateY(calc(var(--ry, -16deg) * 0.4)) rotateZ(calc(var(--rz, 0deg) * 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .word {
+    transition: none;
+  }
+}

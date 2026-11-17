@@ -7,15 +7,13 @@ const previewEnabled = process.env.NODE_ENV === "development";
 
 // Keep preview content out of the shared API cache and write paths.
 const previewProjects: PortfolioResponse[] = [
-  { id: "preview-campus-guide", title: "캠퍼스 가이드", description: "처음 방문하는 사람도 강의실과 편의시설을 쉽게 찾을 수 있는 캠퍼스 지도입니다.", pinned: true },
-  { id: "preview-study-board", title: "스터디 보드", description: "팀별 학습 일정과 주간 목표를 한눈에 확인하는 협업 도구입니다.", pinned: false },
-  { id: "preview-bookcase", title: "공유 책장", description: "학회원이 읽고 있는 책을 기록하고 서로에게 추천할 수 있는 서비스입니다.", pinned: false },
-  { id: "preview-project-log", title: "프로젝트 로그", description: "기획부터 배포까지의 결정과 실험을 시간순으로 정리하는 기록 도구입니다.", pinned: false },
-  { id: "preview-campus-calendar", title: "캠퍼스 캘린더", description: "흩어진 교내 행사와 신청 마감일을 한 화면에 모은 캘린더입니다.", pinned: false },
+  { id: "preview-wavehome", title: "WaveHome", description: "파도처럼 움직이는 인터랙션으로 학회를 소개하는 홈페이지입니다.", pinned: true },
+  { id: "preview-cpp-juce", title: "C++와 JUCE", description: "C++와 JUCE 프레임워크로 직접 만든 오디오 플러그인 프로젝트입니다.", pinned: false },
+  { id: "preview-alumni-meetup", title: "CNU 선배와의 만남", description: "현업에 있는 CNU 선배들을 초대해 진로와 경험을 나눈 네트워킹 행사입니다.", pinned: false },
 ].map((project, index) => ({
   ...project,
   description: `${project.description}\n\n## 진행 과정\n\n사용 흐름을 먼저 그려본 뒤, 작은 기능 단위로 나누어 구현하고 테스트했습니다.`,
-  thumbnailUrl: project.pinned ? "/map.png" : "",
+  thumbnailUrl: "",
   startQuarterId: "preview-quarter-1",
   startQuarterName: "25-2",
   endQuarterId: "preview-quarter-2",
@@ -65,7 +63,8 @@ export function orderWorkList(projects: PortfolioResponse[]) {
 export async function readWorkList() {
   try {
     const { portfolios } = await getPortfolios();
-    return portfolios.length ? portfolios : getPreviewProjects();
+    // Development: sample projects follow the real ones, so generated thumbnails can be reviewed.
+    return [...portfolios, ...getPreviewProjects()];
   } catch (error) {
     if (!previewEnabled) throw error;
     return getPreviewProjects();

@@ -32,11 +32,13 @@ function easeOutCubic(value: number) {
 const START_AT = 0.75;
 // Unpinned (small screens): the wave plays over this much scroll (fraction of the viewport).
 const TRAVEL = 0.6;
-// Large screens: the section is held ("brake") for this much scroll while the wave plays,
-// so the next section does not slide in before the statement has finished.
+// Large screens: the section is one screen and a scroll stop (HomeScrollStops). The gesture
+// that lands on it plays every word and note on a timer, with scrolling held
+// (html[data-scroll-hold]) until the last one has settled. It plays once.
 const PIN_QUERY =
   "(min-width: 900px) and (min-height: 640px) and (prefers-reduced-motion: no-preference)";
-const HOLD = 0.9;
+const NOTES_AFTER_WORDS = 0.1; // extra pause between the statement and the notes (s)
+const HOLD_AFTER = 0.15; // keep holding this long after the last note settles (s)
 // Scroll thresholds (0–1 of the window) at which each unit fires.
 const WORD_THRESHOLDS = [0.08, 0.22, 0.36];
 // The last two notes fire on the same scroll step; MIN_GAP still staggers them.
@@ -61,9 +63,11 @@ type WaveItem = {
 };
 
 /**
- * Word-by-word pop: scrolling past a threshold fires the next word (or note), which then
- * plays over a fixed time, so the pop stays visible however fast the page is scrolled.
- * Consecutive units are kept at least MIN_GAP apart; scrolling back up hides them again.
+ * Word-by-word pop. Large screens: one gesture landing on the section plays every word
+ * and note in sequence (see PIN_QUERY). Smaller screens: scrolling past a threshold fires
+ * the next word (or note), which then plays over a fixed time, so the pop stays visible
+ * however fast the page is scrolled; scrolling back up hides them again. Consecutive
+ * units are kept at least MIN_GAP apart.
  * Layout is measured on resize only; scrolling reads scrollY and writes transform/opacity.
  */
 function useScrollWave(
@@ -111,6 +115,14 @@ function useScrollWave(
     let travel = 1;
     let frame = 0;
     let lastTime = 0;
+    let pinMode = false; // pin mode: timed playback instead of scroll thresholds
+    let played = false;
+    let holdTimer = 0;
+
+    const releaseHold = () => {
+      window.clearTimeout(holdTimer);
+      delete document.documentElement.dataset.scrollHold;
+    };
 
     const apply = (item: WaveItem) => {
       const v = item.value;
@@ -138,19 +150,16 @@ function useScrollWave(
       }
       const viewport = window.innerHeight;
       track.toggleAttribute("data-pin", pin.matches);
+      track.removeAttribute("data-scroll-stop");
       track.style.height = "";
       pinned.style.top = "";
+      pinMode = pin.matches;
 
       if (pin.matches) {
-        const pinHeight = pinned.offsetHeight;
-        const hold = viewport * HOLD;
-        const stickyTop = Math.max(24, (viewport - pinHeight) / 2);
-        track.style.height = `${pinHeight + hold}px`;
-        pinned.style.top = `${stickyTop}px`;
-        const pinTop = track.getBoundingClientRect().top + window.scrollY;
-        // From the section entering the screen until the hold releases.
-        start = pinTop - viewport * START_AT;
-        travel = pinTop - stickyTop + hold - start;
+        // The stop lands with the statement centred on screen.
+        const offset = Math.max(24, (viewport - pinned.offsetHeight) / 2);
+        track.setAttribute("data-scroll-stop", String(Math.round(offset)));
+        start = track.getBoundingClientRect().top + window.scrollY - offset;
         return;
       }
 
@@ -158,8 +167,31 @@ function useScrollWave(
       travel = viewport * TRAVEL;
     };
 
+    // Pin mode: when the page reaches the statement, schedule every unit at once.
+    const maybePlay = (now: number) => {
+      if (!pinMode || played || window.scrollY < start - 4) return;
+      played = true;
+      words.forEach((unit, index) => {
+        unit.active = true;
+        unit.startAt = now + index * MIN_GAP;
+      });
+      const notesFrom = now + words.length * MIN_GAP + NOTES_AFTER_WORDS;
+      noteUnits.forEach((unit, index) => {
+        unit.active = true;
+        unit.startAt = notesFrom + index * MIN_GAP;
+      });
+      // Hold scrolling only when the statement is what is on screen.
+      if (Math.abs(window.scrollY - start) < 48) {
+        const lastNote = noteUnits[noteUnits.length - 1];
+        const ends = (lastNote ? lastNote.startAt + NOTE_DURATION : now) + HOLD_AFTER - now;
+        document.documentElement.dataset.scrollHold = "";
+        holdTimer = window.setTimeout(releaseHold, ends * 1000);
+      }
+    };
+
     // Fire / un-fire units from the scroll position (no DOM reads).
     const updateUnits = (now: number) => {
+      if (pinMode) return; // timed playback (maybePlay) instead
       const progress = (window.scrollY - start) / travel;
       for (const group of [words, noteUnits]) {
         group.forEach((unit, index) => {
@@ -207,7 +239,9 @@ function useScrollWave(
     };
 
     const onScroll = () => {
-      if (motion.matches) requestTick();
+      if (!motion.matches) return;
+      maybePlay(performance.now() / 1000);
+      requestTick();
     };
 
     let relayoutFrame = 0;
@@ -216,13 +250,17 @@ function useScrollWave(
       relayoutFrame = window.requestAnimationFrame(() => {
         relayoutFrame = 0;
         measure();
-        if (motion.matches) requestTick();
+        if (motion.matches) {
+          maybePlay(performance.now() / 1000);
+          requestTick();
+        }
       });
     };
 
     measure();
     if (motion.matches) {
       items.forEach(apply);
+      maybePlay(performance.now() / 1000);
       requestTick();
     }
 
@@ -233,6 +271,7 @@ function useScrollWave(
     motion.addEventListener("change", relayout);
     pin.addEventListener("change", relayout);
     return () => {
+      releaseHold();
       window.cancelAnimationFrame(frame);
       window.cancelAnimationFrame(relayoutFrame);
       resizeObserver.disconnect();

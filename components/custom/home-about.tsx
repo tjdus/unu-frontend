@@ -62,10 +62,12 @@ function easeInOutCubic(value: number) {
 
 const PIN_QUERY =
   "(min-width: 900px) and (min-height: 640px) and (prefers-reduced-motion: no-preference)";
-// Scroll distance (in viewport heights) the pinned deck stays on screen.
-const PIN_TRAVEL = 1.8;
-// Gap between the top of the viewport and the pinned header.
+// Gap between the top of the viewport and the deck's header when it is in view.
 const PIN_TOP = 32;
+// One gesture plays the whole deck: spread + staggered flips, then the float settles in.
+// Scrolling is held (html[data-scroll-hold]) until it has.
+const PLAY_MS = 2200;
+const HOLD_AFTER_MS = 700;
 // Exponential smoothing rate (1/s). Time-based, so it behaves the same at 60 or 120 Hz.
 const SMOOTHING = 14;
 // Idle float after the flip: vertical drift (px) and how fast it fades in/out (1/s).
@@ -77,14 +79,15 @@ const POSE_KEYS: (keyof CardPose)[] = ["x", "y", "tilt", "flip"];
 
 type Geometry =
   | { mode: "off" }
-  | { mode: "pin"; start: number; travel: number; spacing: number }
+  | { mode: "pin"; start: number; spacing: number }
   | { mode: "flow"; cardTops: number[]; viewport: number };
 
 /**
- * Lusion-style deck. On large screens the header and cards are pinned once the heading
- * reaches the top: the cards start gathered in the middle, face down, then spread out to
- * their slots while turning over one after another. Elsewhere each card turns over as it
- * rises.
+ * Lusion-style deck. On large screens the deck is one screen: the cards wait gathered in
+ * the middle, face down, and when a scroll gesture lands on the deck (it is a scroll stop,
+ * see HomeScrollStops) they spread out to their slots while turning over one after
+ * another, then start floating — all in one go, with scrolling held meanwhile. It plays
+ * once; afterwards the cards stay face up. Elsewhere each card turns over as it rises.
  *
  * Performance: layout is measured only on resize / content-size changes. Scrolling just
  * reads window.scrollY and writes `transform` on two elements per card (no layout reads,
@@ -115,6 +118,15 @@ function useScrollFlip(
     // Lusion-style idle float once a card has turned face up (0 = still, 1 = floating).
     const floatAmp = slots.map(() => 0);
     let visible = true;
+    // Deck playback (pin mode): 0 until a gesture lands on it, then time-driven to 1.
+    let playStart = 0;
+    let holdTimer = 0;
+    const playProgress = (now: number) => (playStart ? clamp01((now - playStart) / PLAY_MS) : 0);
+
+    const releaseHold = () => {
+      window.clearTimeout(holdTimer);
+      delete document.documentElement.dataset.scrollHold;
+    };
 
     const write = (now: number) => {
       const t = now / 1000;
@@ -136,6 +148,7 @@ function useScrollFlip(
 
     const clearInline = () => {
       track.style.height = "";
+      track.removeAttribute("data-scroll-stop");
       pinned.style.top = "";
       list.style.transform = "";
       list.style.marginBottom = "";
@@ -163,18 +176,16 @@ function useScrollFlip(
         const headerHeight = pinned.offsetHeight - listHeight;
         const available = viewport - PIN_TOP * 2 - headerHeight;
         const fit = Math.min(1, Math.max(0.5, available / listHeight));
-        const travel = viewport * PIN_TRAVEL;
         if (fit < 1) {
           list.style.transform = `scale(${fit})`;
           list.style.marginBottom = `${-listHeight * (1 - fit)}px`;
         }
-        track.style.height = `${headerHeight + listHeight * fit + travel}px`;
-        pinned.style.top = `${PIN_TOP}px`;
+        track.style.height = `${headerHeight + listHeight * fit}px`;
+        // The scroll stop lands with the heading PIN_TOP below the top of the screen.
+        track.setAttribute("data-scroll-stop", String(PIN_TOP));
         geometry = {
           mode: "pin",
-          // Scroll position at which the heading reaches PIN_TOP.
           start: track.getBoundingClientRect().top + window.scrollY - PIN_TOP,
-          travel,
           spacing: slots.length > 1 ? slots[1].offsetLeft - slots[0].offsetLeft : 0,
         };
         return;
@@ -188,11 +199,11 @@ function useScrollFlip(
     };
 
     // Pure maths from scrollY + cached geometry: no DOM reads.
-    const computeTargets = () => {
+    const computeTargets = (now = performance.now()) => {
       const scrollY = window.scrollY;
       if (geometry.mode === "pin") {
-        const { start, travel, spacing } = geometry;
-        const progress = clamp01((scrollY - start) / travel);
+        const { spacing } = geometry;
+        const progress = playProgress(now);
         // Spread over 0.04–0.5, flips staggered between 0.18 and 0.9.
         const spread = easeInOutCubic((progress - 0.04) / 0.46);
         targets = slots.map((_, index) => {
@@ -224,6 +235,10 @@ function useScrollFlip(
       snap = false;
 
       let moving = false;
+      if (geometry.mode === "pin" && playStart && playProgress(now) < 1) {
+        computeTargets(now);
+        moving = true;
+      }
       const floatBlend = 1 - Math.exp(-FLOAT_EASE * dt);
       current.forEach((pose, index) => {
         const target = targets[index];
@@ -251,8 +266,22 @@ function useScrollFlip(
       if (!frame) frame = window.requestAnimationFrame(tick);
     };
 
+    // Start the deck when the page reaches it (normally a scroll-stop glide landing on it).
+    const maybePlay = () => {
+      if (geometry.mode !== "pin" || playStart) return;
+      const scrollY = window.scrollY;
+      if (scrollY < geometry.start - 4) return;
+      playStart = performance.now();
+      // Hold scrolling only when the deck is what is on screen (not when jumped past).
+      if (Math.abs(scrollY - geometry.start) < 48) {
+        document.documentElement.dataset.scrollHold = "";
+        holdTimer = window.setTimeout(releaseHold, PLAY_MS + HOLD_AFTER_MS);
+      }
+    };
+
     const onScroll = () => {
       if (geometry.mode === "off") return;
+      maybePlay();
       computeTargets();
       requestTick();
     };
@@ -263,12 +292,14 @@ function useScrollFlip(
       relayoutFrame = window.requestAnimationFrame(() => {
         relayoutFrame = 0;
         measureLayout();
+        maybePlay();
         computeTargets();
         requestTick();
       });
     };
 
     measureLayout();
+    maybePlay();
     computeTargets();
     requestTick();
 
@@ -291,6 +322,7 @@ function useScrollFlip(
     motion.addEventListener("change", relayout);
     pin.addEventListener("change", relayout);
     return () => {
+      releaseHold();
       window.cancelAnimationFrame(frame);
       window.cancelAnimationFrame(relayoutFrame);
       resizeObserver.disconnect();

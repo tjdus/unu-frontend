@@ -13,8 +13,10 @@ const CENTER_Y = 248;
 const RADIUS = 154;
 const ART_PATH = "/about-dial";
 const SCROLL_EDGE_TOLERANCE = 2;
-const WHEEL_IDLE_MS = 145;
-const STEP_DURATION_MS = 500;
+const WHEEL_IDLE_MS = 110;
+const STEP_DURATION_MS = 360;
+const MAX_STEP_MS = 520;
+const SETTLE_DELAY_MS = 140; // scroll pause after which an off-dot dial settles
 const SWIPE_THRESHOLD = 20;
 const LABEL_BOUNDS = [
   [326, 30, 92],
@@ -61,15 +63,17 @@ function getStep(
   lastIndex: number,
 ) {
   const direction = Math.sign(delta);
+  // Above the dial (the hero): any downward gesture goes straight to the first dot.
   if (top < -SCROLL_EDGE_TOLERANCE) {
-    return direction > 0 && top + delta >= 0 ? 0 : null;
+    return direction > 0 ? 0 : null;
   }
   if (top > travel + SCROLL_EDGE_TOLERANCE) {
     return direction < 0 && top + delta <= travel ? lastIndex : null;
   }
   const index = Math.round(Math.min(1, Math.max(0, top / travel)) * lastIndex);
-  const next = index + direction;
-  return next >= 0 && next <= lastIndex ? next : null;
+  // Past either end the step leaves the dial (-1: back to the hero, lastIndex + 1: on to
+  // the next section), so a big flick never flies past it.
+  return index + direction;
 }
 
 export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
@@ -92,16 +96,32 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
     let motion: { from: number; to: number; startedAt: number; duration: number } | null = null;
     let swipe: { x: number; y: number; consumed: boolean } | null = null;
 
+    // Exit targets: the top of the page before the dial, the next section after it.
+    const exitY = (index: number, range: ReturnType<typeof stageScrollRange>) => {
+      if (index < 0) return 0;
+      let target = section.nextElementSibling;
+      while (target && target.tagName !== "SECTION") target = target.nextElementSibling;
+      return target
+        ? target.getBoundingClientRect().top + window.scrollY
+        : stepScrollY(lastIndex, lastIndex, range) + window.innerHeight;
+    };
+
+    const hold = (on: boolean) => {
+      if (on) document.documentElement.dataset.scrollHold = "";
+      else delete document.documentElement.dataset.scrollHold;
+    };
+
     const stepTo = (index: number, range: ReturnType<typeof stageScrollRange>) => {
       const from = window.scrollY;
-      const to = stepScrollY(index, lastIndex, range);
+      const to = index < 0 || index > lastIndex ? exitY(index, range) : stepScrollY(index, lastIndex, range);
       if (reducedMotion.matches || Math.abs(to - from) < 1) {
         motion = null;
         window.scrollTo({ top: to, behavior: "instant" });
       } else {
         const stepDistance = range.travel / Math.max(1, lastIndex);
         const extraSteps = Math.max(0, Math.abs(to - from) / stepDistance - 1);
-        motion = { from, to, startedAt: performance.now(), duration: Math.min(760, STEP_DURATION_MS + 55 * extraSteps) };
+        motion = { from, to, startedAt: performance.now(), duration: Math.min(MAX_STEP_MS, STEP_DURATION_MS + 40 * extraSteps) };
+        hold(true);
       }
       schedule();
     };
@@ -121,6 +141,7 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
       const delta = event.deltaY * unit;
       if (Math.abs(delta) < 2) return;
+      // The dial always rests on a dot: every gesture in or into it is one step, either way.
       const range = stageScrollRange(section, stage);
       const next = getStep(delta, range, lastIndex);
       if (next === null) return;
@@ -156,7 +177,10 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
       }
     };
 
-    const cancelSwipe = () => { swipe = null; };
+    const cancelSwipe = () => {
+      swipe = null;
+      scheduleSettle();
+    };
 
     const update = (now: number) => {
       frame = null;
@@ -165,7 +189,10 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
         // Zero velocity and acceleration at both ends keeps each stop gentle.
         const eased = progress ** 3 * (progress * (6 * progress - 15) + 10);
         window.scrollTo({ top: motion.from + (motion.to - motion.from) * eased, behavior: "instant" });
-        if (progress === 1) motion = null;
+        if (progress === 1) {
+          motion = null;
+          hold(false);
+        }
       }
       const { top, travel } = stageScrollRange(section, stage);
       const position = Math.min(1, Math.max(0, top / travel)) * lastIndex;
@@ -176,6 +203,24 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
         setActiveIndex(index);
       }
       if (motion) schedule();
+      else scheduleSettle();
+    };
+
+    // Whatever left the dial between two dots (keyboard, scrollbar, a fling) settles onto
+    // the nearest dot once scrolling pauses.
+    let settleTimer = 0;
+    const scheduleSettle = () => {
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        if (motion || swipe) return;
+        const range = stageScrollRange(section, stage);
+        if (range.top <= SCROLL_EDGE_TOLERANCE || range.top >= range.travel - SCROLL_EDGE_TOLERANCE) return;
+        const position = (range.top / range.travel) * lastIndex;
+        const nearest = Math.round(position);
+        if (Math.abs(position - nearest) * (range.travel / Math.max(1, lastIndex)) > 1) {
+          stepTo(nearest, range);
+        }
+      }, SETTLE_DELAY_MS);
     };
 
     const schedule = () => {
@@ -199,6 +244,8 @@ export function AboutActivityDial({ items }: { items: AboutSectionInfo[] }) {
     window.addEventListener("touchcancel", cancelSwipe);
     reducedMotion.addEventListener("change", schedule);
     return () => {
+      window.clearTimeout(settleTimer);
+      hold(false);
       selectStep.current = null;
       observer.disconnect();
       if (frame !== null) window.cancelAnimationFrame(frame);

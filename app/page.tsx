@@ -19,6 +19,7 @@ import { HomeHeroSubtitle } from "@/components/custom/home-hero-subtitle";
 import { HomeEthos } from "@/components/custom/home-ethos";
 import { HomeDrawFrame } from "@/components/custom/home-draw-frame";
 import { HomeWorks } from "@/components/custom/home-works";
+import { HomeScrollStops } from "@/components/custom/home-scroll-stops";
 import { HomeScrollDivider } from "@/components/custom/home-scroll-divider";
 import { NewsList } from "@/components/custom/news-list";
 import { HomeFaq } from "@/components/custom/home-faq";
@@ -175,6 +176,7 @@ export default function Home() {
       className={`${entranceStyles.home} ${styles.page} font-cnu-body overflow-x-clip`}
     >
       <HomeEntrance />
+      <HomeScrollStops />
 
       <section data-home-hero className={styles.hero}>
         <HomeHeroScene />
