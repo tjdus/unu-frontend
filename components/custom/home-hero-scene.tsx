@@ -17,6 +17,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { HOME_ENTRANCE_COMPLETE } from "./home-entrance";
 
 type PointerState = {
   active: boolean;
@@ -33,8 +34,12 @@ type LandingState = {
   visible: boolean;
 };
 
+type CubeAnchor = { x: number; y: number; titleTopY: number };
+
 const FACE_LETTERS = ["U", "U", "N", "N", "C", "C"];
-const CUBE_SIZE = 1.24;
+// Rendered at 75% of the original 1.24 world units (physics, landing and web scale with it).
+const CUBE_SIZE_SCALE = 0.75;
+const CUBE_SIZE = 1.24 * CUBE_SIZE_SCALE;
 
 const ANCHOR_FONT_SCALE_STOPS: [fontSizePx: number, scale: number][] = [
   [12.6, 0.5],
@@ -72,7 +77,49 @@ const HOVER_TRIGGER_RADIUS = 0.25;
 const HOVER_RESET_RADIUS = 0.36;
 const MIN_REACTION_INTERVAL = 0.65;
 const FLOOR_SURFACE_Y = -0.46;
+// The cube rolls this many CSS px above the ruler's top edge. Applied through the camera
+// framing, so the floor, the cube and the landing web (all at FLOOR_SURFACE_Y) move together.
+const FLOOR_RAISE_PX = 18;
 const AIRBORNE_CLEARANCE = 0.06;
+
+const INTRO_IDLE_POSITION: [number, number, number] = [
+  CUBE_INTRO_START_X,
+  CUBE_INTRO_START_Y,
+  CUBE_START_POSITION[2],
+];
+// Longest frame step fed to the intro / idle animations (avoids jumps after a pause).
+const MAX_FRAME_DELTA = 1 / 30;
+// After a teleport (out-of-bounds reset) keep the cube hidden until the rapier
+// interpolation has stepped past the old pose, so no in-between ghost frame is drawn.
+const TELEPORT_HIDE_SECONDS = 0.06;
+
+type IntroContact = { angle: number; x: number; centerY: number; webX: number; webZ: number };
+type IntroPlan = { startX: number; contacts: IntroContact[] };
+
+/** Roll-in path, shifted as a whole so it ends on the landing spot (hop lengths unchanged). */
+function buildIntroPlan(bounds: ArenaBounds, finalQuaternion: THREE.Quaternion): IntroPlan {
+  const target = THREE.MathUtils.clamp(
+    bounds.landing ?? CUBE_INTRO_CONTACT_X[2],
+    bounds.left + CUBE_SIZE * 0.6,
+    bounds.right - CUBE_SIZE * 0.6,
+  );
+  const offsetX = target - CUBE_INTRO_CONTACT_X[2];
+  const rollAxis = new THREE.Vector3(0, 0, 1);
+  const contacts = CUBE_INTRO_CONTACT_ANGLE.map((angle, index) => {
+    const roll = new THREE.Quaternion().setFromAxisAngle(rollAxis, angle);
+    const orientation = new THREE.Quaternion().copy(finalQuaternion).premultiply(roll);
+    const groundContact = getCubeGroundContact(orientation);
+    const x = CUBE_INTRO_CONTACT_X[index] + offsetX;
+    return {
+      angle,
+      x,
+      centerY: groundContact.centerY,
+      webX: x + groundContact.offsetX,
+      webZ: CUBE_START_POSITION[2] + groundContact.offsetZ,
+    };
+  });
+  return { startX: CUBE_INTRO_START_X + offsetX, contacts };
+}
 
 function getCubeGroundContact(quaternion: THREE.Quaternion) {
   const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
@@ -200,8 +247,75 @@ function createFaceTexture(letter: string) {
   return texture;
 }
 
-function Arena() {
-  const halfWidth = 4.65;
+/** Horizontal limits of the play area in world units (left/right inner wall faces). */
+type ArenaBounds = {
+  left: number;
+  right: number;
+  /** World X where the intro ends and the cube rests (defaults to CUBE_START_POSITION). */
+  landing?: number;
+};
+
+const DEFAULT_ARENA_BOUNDS: ArenaBounds = { left: -4.53, right: 4.53 };
+const CAMERA_Z = 8.4;
+const CAMERA_FOV = 40;
+const ARENA_HALF_DEPTH = 1.75;
+const ARENA_ESCAPE_MARGIN = 1.25;
+const ARENA_REFERENCE_DISTANCE = CAMERA_Z - CUBE_START_POSITION[2];
+const VISIBLE_HALF_HEIGHT = ARENA_REFERENCE_DISTANCE * Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV / 2));
+
+// Follow the camera ray so the left wall projects to the same edge at every depth.
+function leftWallX(left: number, depth: number) {
+  return left * (CAMERA_Z - depth) / ARENA_REFERENCE_DISTANCE;
+}
+
+/**
+ * Drops the time that piled up while the canvas or the tab was not rendering, so physics
+ * does not fast-forward (up to 0.5 s of catch-up steps) and make the cube jump on return.
+ */
+function ClockGuard({ running }: { running: boolean }) {
+  const getState = useThree((state) => state.get);
+
+  useEffect(() => {
+    if (running) getState().clock.getDelta();
+  }, [getState, running]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") getState().clock.getDelta();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [getState]);
+
+  return null;
+}
+
+function CameraRig({ offsetY }: { offsetY: number }) {
+  const getState = useThree((state) => state.get);
+
+  useEffect(() => {
+    getState().invalidate();
+  }, [getState, offsetY]);
+
+  // Pure vertical translation: the physics world stays where it is, only the framing moves.
+  // Re-applied per frame because the Canvas may re-apply its `camera` props on re-render.
+  useFrame(({ camera }) => {
+    if (camera.position.y === offsetY) return;
+    camera.position.y = offsetY;
+    camera.updateMatrixWorld();
+  }, -1);
+
+  return null;
+}
+
+function Arena({ bounds }: { bounds: ArenaBounds }) {
+  const WALL = 0.12;
+  const left = leftWallX(bounds.left, 0);
+  const leftAngle = Math.atan(-bounds.left / ARENA_REFERENCE_DISTANCE);
+  const leftCos = Math.cos(leftAngle);
+  const outerLeft = Math.min(leftWallX(bounds.left, -ARENA_HALF_DEPTH), leftWallX(bounds.left, ARENA_HALF_DEPTH));
+  const halfWidth = (bounds.right - outerLeft) / 2 + WALL * 2;
+  const centerX = (outerLeft + bounds.right) / 2;
   const floorY = -0.58;
   const ceilingY = 2.78;
   const wallCenterY = (floorY + ceilingY) / 2;
@@ -211,39 +325,41 @@ function Arena() {
     <>
       <RigidBody name="arena-floor" type="fixed" colliders={false}>
         <CuboidCollider
-          args={[halfWidth, 0.12, 1.75]}
-          position={[0, floorY, 0]}
+          args={[halfWidth, WALL, ARENA_HALF_DEPTH]}
+          position={[centerX, floorY, 0]}
           friction={0.82}
           restitution={0.4}
         />
       </RigidBody>
       <RigidBody name="arena-bounds" type="fixed" colliders={false}>
         <CuboidCollider
-          args={[halfWidth, 0.12, 1.75]}
-          position={[0, ceilingY, 0]}
+          args={[halfWidth, WALL, ARENA_HALF_DEPTH]}
+          position={[centerX, ceilingY, 0]}
           friction={0.6}
           restitution={0.46}
         />
         <CuboidCollider
-          args={[0.12, wallHalfHeight, 1.75]}
-          position={[-halfWidth, wallCenterY, 0]}
+          args={[WALL, wallHalfHeight, ARENA_HALF_DEPTH / leftCos]}
+          position={[left - WALL * leftCos, wallCenterY, WALL * Math.sin(leftAngle)]}
+          rotation={[0, leftAngle, 0]}
+          contactSkin={0.08}
           friction={0.7}
           restitution={0.56}
         />
         <CuboidCollider
-          args={[0.12, wallHalfHeight, 1.75]}
-          position={[halfWidth, wallCenterY, 0]}
+          args={[WALL, wallHalfHeight, ARENA_HALF_DEPTH]}
+          position={[bounds.right + WALL, wallCenterY, 0]}
           friction={0.7}
           restitution={0.56}
         />
         <CuboidCollider
-          args={[halfWidth, wallHalfHeight, 0.12]}
-          position={[0, wallCenterY, -1.5]}
+          args={[halfWidth, wallHalfHeight, WALL]}
+          position={[centerX, wallCenterY, -1.5]}
           restitution={0.46}
         />
         <CuboidCollider
-          args={[halfWidth, wallHalfHeight, 0.12]}
-          position={[0, wallCenterY, 1.5]}
+          args={[halfWidth, wallHalfHeight, WALL]}
+          position={[centerX, wallCenterY, 1.5]}
           restitution={0.46}
         />
       </RigidBody>
@@ -306,7 +422,7 @@ function LandingWeb({ landingRef }: { landingRef: RefObject<LandingState> }) {
 
     const eased = 1 - Math.pow(1 - progress, 3);
     const elasticity = Math.sin(progress * Math.PI * 2.2) * (1 - progress) * 0.015;
-    const scale = 0.72 + eased * 0.2;
+    const scale = (0.72 + eased * 0.2) * CUBE_SIZE_SCALE;
     const impactScale = impactScaleRef.current;
     group.scale.set(
       scale * (1 + elasticity) * impactScale,
@@ -382,23 +498,32 @@ function CompactCube({
 }: {
   reducedMotion: boolean;
   anchorFontSizePx: number | null;
-  anchorNDC: { x: number; y: number } | null;
+  anchorNDC: CubeAnchor | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const cubeScale = getFontSizeCubeScale(anchorFontSizePx);
   const cubeSize = CUBE_SIZE * cubeScale;
 
-
   const basePosition = useMemo(() => {
-    if (!anchorNDC) return null;
+    if (!anchorNDC || !size.height) return null;
     const targetZ = -0.3;
     const near = new THREE.Vector3(anchorNDC.x, anchorNDC.y, 0).unproject(camera);
     const far = new THREE.Vector3(anchorNDC.x, anchorNDC.y, 1).unproject(camera);
     const direction = far.sub(near).normalize();
     const distance = (targetZ - near.z) / direction.z;
-    return near.add(direction.multiplyScalar(distance));
-  }, [anchorNDC, camera]);
+    const position = near.add(direction.multiplyScalar(distance));
+    // Fit the whole spinning cube, even when a front corner is nearest the camera.
+    const radius = cubeSize * Math.sqrt(3) / 2;
+    const halfHeight = (CAMERA_Z - targetZ) * Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV / 2));
+    const halfWidth = halfHeight * (size.width / size.height);
+    const safeLeft = -halfWidth + radius * (1 + halfWidth / (CAMERA_Z - targetZ)) + halfWidth * 16 / size.width;
+    if (position.x < safeLeft) {
+      position.x = safeLeft;
+      position.y = camera.position.y + anchorNDC.titleTopY * halfHeight + radius + 0.12;
+    }
+    return position;
+  }, [anchorNDC, camera, cubeSize, size.height, size.width]);
 
   const rotationAxis = useMemo(
     () => new THREE.Vector3(0.72, 1, 0.38).normalize(),
@@ -409,14 +534,17 @@ function CompactCube({
     [],
   );
   const spinRotation = useMemo(() => new THREE.Quaternion(), []);
+  const timeRef = useRef(0);
 
-  useFrame(({ clock }) => {
+  useFrame((_, delta) => {
     if (!groupRef.current || reducedMotion || !basePosition) return;
 
-    spinRotation.setFromAxisAngle(rotationAxis, clock.elapsedTime * 0.38);
+    // Own clock from clamped deltas: no jump after the canvas was paused.
+    timeRef.current += Math.min(delta, MAX_FRAME_DELTA);
+    const time = timeRef.current;
+    spinRotation.setFromAxisAngle(rotationAxis, time * 0.38);
     groupRef.current.quaternion.copy(baseRotation).premultiply(spinRotation);
-    groupRef.current.position.y =
-      basePosition.y + Math.sin(clock.elapsedTime * 0.7) * 0.06;
+    groupRef.current.position.y = basePosition.y + Math.sin(time * 0.7) * 0.06;
   });
 
   if (!basePosition) return null;
@@ -433,17 +561,25 @@ function CnuCube({
   pointerRef,
   landingRef,
   landingArmedRef,
+  bounds,
 }: {
   reducedMotion: boolean;
   pointerRef: RefObject<PointerState>;
   landingRef: RefObject<LandingState>;
   landingArmedRef: RefObject<boolean>;
+  bounds: ArenaBounds;
 }) {
   const bodyRef = useRef<RapierRigidBody>(null);
   const introCubeRef = useRef<THREE.Group>(null);
   const physicsCubeRef = useRef<THREE.Group>(null);
-  const introStartedAtRef = useRef<number | null>(null);
+  // Intro clock accumulated from clamped frame deltas (null until the intro starts).
+  const introTimeRef = useRef<number | null>(null);
+  const introPlanRef = useRef<IntroPlan | null>(null);
+  const hiddenUntilRef = useRef(0);
+  const sceneTimeRef = useRef(0);
+  const boundsRef = useRef(bounds);
   const introCompleteRef = useRef(reducedMotion);
+  const entranceFinishedRef = useRef(false);
   const introLandingCountRef = useRef(0);
   const hoverArmedRef = useRef(true);
   const lastReactionRef = useRef(Number.NEGATIVE_INFINITY);
@@ -458,42 +594,54 @@ function CnuCube({
   );
   const introRollQuaternion = useMemo(() => new THREE.Quaternion(), []);
   const introRollAxis = useMemo(() => new THREE.Vector3(0, 0, 1), []);
-  const introContacts = useMemo(
-    () =>
-      CUBE_INTRO_CONTACT_ANGLE.map((angle, index) => {
-        const roll = new THREE.Quaternion().setFromAxisAngle(introRollAxis, angle);
-        const orientation = new THREE.Quaternion()
-          .copy(introFinalQuaternion)
-          .premultiply(roll);
-        const groundContact = getCubeGroundContact(orientation);
-
-        return {
-          angle,
-          x: CUBE_INTRO_CONTACT_X[index],
-          centerY: groundContact.centerY,
-          webX: CUBE_INTRO_CONTACT_X[index] + groundContact.offsetX,
-          webZ: CUBE_START_POSITION[2] + groundContact.offsetZ,
-        };
-      }),
-    [introFinalQuaternion, introRollAxis],
-  );
   const rotationMatrix = useMemo(() => new THREE.Matrix4(), []);
   const contactOffset = useMemo(() => new THREE.Vector3(), []);
   const rotatedCorner = useMemo(() => new THREE.Vector3(), []);
   const { camera } = useThree();
 
-  useFrame(({ clock }) => {
+  useEffect(() => {
+    boundsRef.current = bounds;
+  }, [bounds]);
+
+  useEffect(() => {
+    const entrance = document.querySelector<HTMLElement>("[data-home-entrance]");
+    if (!entrance || entrance.dataset.phase === "done" || getComputedStyle(entrance).display === "none") {
+      entranceFinishedRef.current = true;
+      return;
+    }
+
+    const finish = () => { entranceFinishedRef.current = true; };
+    entrance.addEventListener(HOME_ENTRANCE_COMPLETE, finish, { once: true });
+    return () => entrance.removeEventListener(HOME_ENTRANCE_COMPLETE, finish);
+  }, []);
+
+  useFrame((_, delta) => {
     const body = bodyRef.current;
     const introCube = introCubeRef.current;
     const physicsCube = physicsCubeRef.current;
     if (!body || !introCube || !physicsCube || reducedMotion) return;
+    const step = Math.min(delta, MAX_FRAME_DELTA);
+    sceneTimeRef.current += step;
+    const now = sceneTimeRef.current;
 
     if (!introCompleteRef.current) {
-      introStartedAtRef.current ??= clock.elapsedTime;
-      const progress = Math.min(
-        (clock.elapsedTime - introStartedAtRef.current) / CUBE_INTRO_DURATION,
-        1,
-      );
+      if (!entranceFinishedRef.current) return;
+      if (introTimeRef.current === null) {
+        // Freeze the path for the whole intro and park the (still hidden, weightless)
+        // body on the landing pose now, so the hand-off later needs no teleport.
+        const plan = buildIntroPlan(boundsRef.current, introFinalQuaternion);
+        introPlanRef.current = plan;
+        introTimeRef.current = 0;
+        const landing = plan.contacts[2];
+        body.setTranslation({ x: landing.x, y: landing.centerY, z: CUBE_START_POSITION[2] }, true);
+        body.setRotation(introFinalQuaternion, true);
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      } else {
+        introTimeRef.current += step;
+      }
+      const { startX: introStartX, contacts: introContacts } = introPlanRef.current!;
+      const progress = Math.min(introTimeRef.current / CUBE_INTRO_DURATION, 1);
       let x: number;
       let y: number;
       let angle: number;
@@ -502,7 +650,7 @@ function CnuCube({
         const phaseProgress = progress / CUBE_INTRO_FIRST_CONTACT;
         const contact = introContacts[0];
         angle = THREE.MathUtils.lerp((Math.PI * 5) / 4, contact.angle, phaseProgress);
-        x = THREE.MathUtils.lerp(CUBE_INTRO_START_X, contact.x, phaseProgress);
+        x = THREE.MathUtils.lerp(introStartX, contact.x, phaseProgress);
         y = THREE.MathUtils.lerp(
           CUBE_INTRO_START_Y,
           contact.centerY,
@@ -559,19 +707,11 @@ function CnuCube({
       }
 
       if (progress >= CUBE_INTRO_FINAL_CONTACT) {
-        const contact = introContacts[2];
+        // Swap visuals only: the body has been resting on this exact pose since the
+        // intro began, so there is no teleport and no interpolation ghost.
         introCompleteRef.current = true;
         introCube.visible = false;
         physicsCube.visible = true;
-        body.setTranslation(
-          {
-            x: contact.x,
-            y: contact.centerY,
-            z: CUBE_START_POSITION[2],
-          },
-          true,
-        );
-        body.setRotation(introFinalQuaternion, true);
         body.setGravityScale(1, true);
         body.setLinvel({ x: -0.42, y: -0.9, z: 0 }, true);
         body.setAngvel({ x: 0, y: 0, z: -0.52 }, true);
@@ -582,21 +722,33 @@ function CnuCube({
       return;
     }
 
+    if (hiddenUntilRef.current && now >= hiddenUntilRef.current) {
+      hiddenUntilRef.current = 0;
+      physicsCube.visible = true;
+    }
+
     const translation = body.translation();
+    const arena = boundsRef.current;
     if (
       !Number.isFinite(translation.x) ||
+      !Number.isFinite(translation.y) ||
+      !Number.isFinite(translation.z) ||
       translation.y < -4 ||
-      Math.abs(translation.x) > 6 ||
+      translation.x < leftWallX(arena.left, translation.z) - ARENA_ESCAPE_MARGIN ||
+      translation.x > arena.right + ARENA_ESCAPE_MARGIN ||
       Math.abs(translation.z) > 3
     ) {
+      const landingX = THREE.MathUtils.clamp(
+        arena.landing ?? CUBE_START_POSITION[0],
+        arena.left + CUBE_SIZE * 0.6,
+        arena.right - CUBE_SIZE * 0.6,
+      );
       body.setTranslation(
-        {
-          x: CUBE_START_POSITION[0],
-          y: CUBE_START_POSITION[1],
-          z: CUBE_START_POSITION[2],
-        },
+        { x: landingX, y: CUBE_START_POSITION[1], z: CUBE_START_POSITION[2] },
         true,
       );
+      physicsCube.visible = false;
+      hiddenUntilRef.current = now + TELEPORT_HIDE_SECONDS;
       body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       body.setAngvel({ x: 0.4, y: -0.25, z: 0.3 }, true);
       hoverArmedRef.current = true;
@@ -688,7 +840,6 @@ function CnuCube({
     const dx = projectedPosition.x - pointer.x;
     const dy = projectedPosition.y - pointer.y;
     const distance = Math.hypot(dx, dy);
-    const now = clock.elapsedTime;
     const pointerMoved = pointer.revision !== observedPointerRevisionRef.current;
     observedPointerRevisionRef.current = pointer.revision;
 
@@ -744,7 +895,7 @@ function CnuCube({
       <group
         ref={introCubeRef}
         visible={!reducedMotion}
-        position={[CUBE_INTRO_START_X, CUBE_INTRO_START_Y, CUBE_START_POSITION[2]]}
+        position={INTRO_IDLE_POSITION}
         rotation={CUBE_START_ROTATION}
       >
         <CubeVisual cubeSize={CUBE_SIZE} />
@@ -760,6 +911,8 @@ function CnuCube({
         angularDamping={0.46}
         friction={0.8}
         restitution={0.48}
+        ccd
+        additionalSolverIterations={2}
         canSleep
       >
         <CuboidCollider args={[CUBE_SIZE / 2, CUBE_SIZE / 2, CUBE_SIZE / 2]} />
@@ -774,9 +927,11 @@ function CnuCube({
 function PhysicsCubeWorld({
   reducedMotion,
   pointerRef,
+  bounds,
 }: {
   reducedMotion: boolean;
   pointerRef: RefObject<PointerState>;
+  bounds: ArenaBounds;
 }) {
   const landingRef = useRef<LandingState>({
     id: 0,
@@ -789,7 +944,7 @@ function PhysicsCubeWorld({
 
   return (
     <Physics gravity={[0, -6.2, 0]} timeStep={1 / 60} interpolate>
-      <Arena />
+      <Arena bounds={bounds} />
       <FloorShadow />
       <LandingWeb landingRef={landingRef} />
       <CnuCube
@@ -797,6 +952,7 @@ function PhysicsCubeWorld({
         pointerRef={pointerRef}
         landingRef={landingRef}
         landingArmedRef={landingArmedRef}
+        bounds={bounds}
       />
     </Physics>
   );
@@ -809,13 +965,15 @@ function CubeWorld({
   mobileLikeDevice,
   anchorNDC,
   anchorFontSizePx,
+  bounds,
 }: {
   reducedMotion: boolean;
   pointerRef: RefObject<PointerState>;
   viewportWidth: number | null;
   mobileLikeDevice: boolean | null;
-  anchorNDC: { x: number; y: number } | null;
+  anchorNDC: CubeAnchor | null;
   anchorFontSizePx: number | null;
+  bounds: ArenaBounds;
 }) {
   if (viewportWidth === null || mobileLikeDevice === null) {
     return null;
@@ -838,7 +996,7 @@ function CubeWorld({
     );
   }
 
-  return <PhysicsCubeWorld reducedMotion={reducedMotion} pointerRef={pointerRef} />;
+  return <PhysicsCubeWorld reducedMotion={reducedMotion} pointerRef={pointerRef} bounds={bounds} />;
 }
 
 export function HomeHeroScene() {
@@ -846,9 +1004,26 @@ export function HomeHeroScene() {
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const [mobileLikeDevice, setMobileLikeDevice] = useState<boolean | null>(null);
 
-  const [anchorNDC, setAnchorNDC] = useState<{ x: number; y: number } | null>(null);
+  const [anchorNDC, setAnchorNDC] = useState<CubeAnchor | null>(null);
   const [anchorFontSizePx, setAnchorFontSizePx] = useState<number | null>(null);
   const pointerRef = useRef<PointerState>({ active: false, x: 0, y: 0, revision: 0 });
+  // Optional framing from the page: the cube rolls on [data-hero-floor] (its top edge),
+  // between that element's left edge and the left edge of [data-hero-bound-right].
+  const [cameraY, setCameraY] = useState(0);
+  const [arenaBounds, setArenaBounds] = useState<ArenaBounds>(DEFAULT_ARENA_BOUNDS);
+  // Stop rendering (and stepping physics) while the hero is scrolled out of view.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const hero = containerRef.current?.closest<HTMLElement>("[data-home-hero]");
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+      rootMargin: "120px 0px",
+    });
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const updateViewportWidth = () => setViewportWidth(window.innerWidth);
@@ -872,24 +1047,80 @@ export function HomeHeroScene() {
       const heroRect = heroEl.getBoundingClientRect();
       const px = anchorRect.left - heroRect.left;
       const py = anchorRect.top - heroRect.top + anchorRect.height / 2;
+      const titleTop = anchorEl.closest("h1")?.getBoundingClientRect().top ?? anchorRect.top;
       setAnchorNDC({
         x: (px / heroRect.width) * 2 - 1,
         y: -((py / heroRect.height) * 2 - 1),
+        titleTopY: -(((titleTop - heroRect.top) / heroRect.height) * 2 - 1),
       });
       setAnchorFontSizePx(parseFloat(getComputedStyle(anchorEl).fontSize));
+    };
+    const updateFraming = () => {
+      const heroEl = document.querySelector<HTMLElement>("[data-home-hero]");
+      const floorEl = heroEl?.querySelector<HTMLElement>("[data-hero-floor]");
+      const rightEl = heroEl?.querySelector<HTMLElement>("[data-hero-bound-right]");
+      const heroRect = heroEl?.getBoundingClientRect();
+      const floorRect = floorEl?.getBoundingClientRect();
+      const rightRect = rightEl?.getBoundingClientRect();
+      if (!heroEl || !heroRect?.width || !heroRect.height) {
+        setCameraY(0);
+        setArenaBounds((prev) => (prev === DEFAULT_ARENA_BOUNDS ? prev : DEFAULT_ARENA_BOUNDS));
+        return;
+      }
+
+      const halfWidth = VISIBLE_HALF_HEIGHT * (heroRect.width / heroRect.height);
+      const toNdcX = (x: number) => ((x - heroRect.left) / heroRect.width) * 2 - 1;
+      const hasRuler = !!floorRect?.width;
+      const gutter = Number.parseFloat(getComputedStyle(heroEl).getPropertyValue("--deep-gutter")) || 20;
+      const nextCameraY = hasRuler
+        ? FLOOR_SURFACE_Y +
+          (((floorRect.top - FLOOR_RAISE_PX - heroRect.top) / heroRect.height) * 2 - 1) * VISIBLE_HALF_HEIGHT
+        : 0;
+      setCameraY((prev) => (Math.abs(prev - nextCameraY) < 1e-3 ? prev : nextCameraY));
+      // Land between the first stat's text and the second stat ([data-hero-landing] items).
+      const landingEls = heroEl?.querySelectorAll<HTMLElement>("[data-hero-landing]");
+      let landing: number | undefined;
+      if (landingEls && landingEls.length >= 2) {
+        const fromRight = Math.max(
+          ...Array.from(landingEls[0].children).map((child) => child.getBoundingClientRect().right),
+        );
+        const toLeft = landingEls[1].getBoundingClientRect().left;
+        landing = toNdcX((fromRight + toLeft) / 2) * halfWidth;
+      }
+      const next: ArenaBounds = {
+        left: toNdcX(hasRuler ? floorRect.left : heroRect.left + gutter) * halfWidth,
+        right: toNdcX(hasRuler && rightRect?.width ? rightRect.left : heroRect.right - gutter) * halfWidth,
+        landing,
+      };
+      // Only replace the bounds when they really moved: a new object rebuilds the colliders.
+      setArenaBounds((prev) =>
+        Math.abs(prev.left - next.left) < 1e-3 &&
+        Math.abs(prev.right - next.right) < 1e-3 &&
+        Math.abs((prev.landing ?? 0) - (next.landing ?? 0)) < 1e-3 &&
+        (prev.landing === undefined) === (next.landing === undefined)
+          ? prev
+          : next,
+      );
     };
 
     updateViewportWidth();
     updateMobileLikeDevice();
     updateAnchor();
+    updateFraming();
+    const heroForObserver = document.querySelector<HTMLElement>("[data-home-hero]");
+    const framingObserver = new ResizeObserver(() => updateFraming());
+    if (heroForObserver) framingObserver.observe(heroForObserver);
     window.addEventListener("resize", updateViewportWidth, { passive: true });
     window.addEventListener("resize", updateAnchor, { passive: true });
+    window.addEventListener("resize", updateFraming, { passive: true });
     window.addEventListener("orientationchange", updateMobileLikeDevice);
     window.addEventListener("orientationchange", updateAnchor);
     touchOnlyQuery.addEventListener("change", updateMobileLikeDevice);
     return () => {
       window.removeEventListener("resize", updateViewportWidth);
       window.removeEventListener("resize", updateAnchor);
+      window.removeEventListener("resize", updateFraming);
+      framingObserver.disconnect();
       window.removeEventListener("orientationchange", updateMobileLikeDevice);
       window.removeEventListener("orientationchange", updateAnchor);
       touchOnlyQuery.removeEventListener("change", updateMobileLikeDevice);
@@ -928,14 +1159,15 @@ export function HomeHeroScene() {
 
   return (
     <div
+      ref={containerRef}
       className="pointer-events-none absolute inset-0 [&_canvas]:h-full [&_canvas]:w-full"
       aria-hidden="true"
     >
       <Canvas
         shadows
-        camera={{ position: [0, 0, 8.4], fov: 40 }}
+        camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
         dpr={[1, 1.5]}
-        frameloop={reducedMotion ? "demand" : "always"}
+        frameloop={reducedMotion ? "demand" : inView ? "always" : "never"}
         gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
       >
         <ambientLight intensity={1.05} />
@@ -951,6 +1183,8 @@ export function HomeHeroScene() {
         <pointLight position={[3, -1, 4]} intensity={8} color="#5fc391" distance={10} />
         <pointLight position={[-3, 1, 3]} intensity={4} color="#c2ead0" distance={9} />
         <fog attach="fog" args={["#14231b", 8.7, 13.8]} />
+        <CameraRig offsetY={cameraY} />
+        <ClockGuard running={inView} />
         <Suspense fallback={null}>
           <CubeWorld
             reducedMotion={reducedMotion}
@@ -959,6 +1193,7 @@ export function HomeHeroScene() {
             mobileLikeDevice={mobileLikeDevice}
             anchorNDC={anchorNDC}
             anchorFontSizePx={anchorFontSizePx}
+            bounds={arenaBounds}
           />
         </Suspense>
       </Canvas>

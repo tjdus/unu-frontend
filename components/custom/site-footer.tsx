@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto shrink-0 border-t border-white/10 bg-[#14231b]">
+    <footer data-site-footer className="mt-auto shrink-0 border-t border-white/10 bg-[#14231b]">
       <div className="mx-auto flex min-h-24 w-full max-w-[1180px] flex-col items-start justify-center gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <Link
           href="/"

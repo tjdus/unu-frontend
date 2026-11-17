@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Pencil, Trash2 } from "lucide-react";
+import { ArrowRight, Pencil, Trash2 } from "lucide-react";
+import { EditorialBackLink, EditorialBlogRow, EditorialDivider, EditorialMedia } from "@/components/custom/editorial";
+import styles from "@/components/custom/editorial.module.css";
 import { MarkdownPreview } from "@/components/custom/markdown-editor";
-import { DefaultBlogThumbnail } from "@/components/custom/blog/default-blog-thumbnail";
 import { Button } from "@/components/ui/button";
 import {
   getBlogPostById,
@@ -15,50 +16,41 @@ import {
   getBlogPosts,
   deleteBlogPost,
 } from "@/lib/api/blog";
-import { BlogPost } from "@/lib/interfaces/blog";
+import { getPreviewPosts } from "@/lib/api/editorial-preview";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { cn } from "@/lib/utils";
+import { formatDotDate } from "@/lib/utils/date-utils";
 
 export default function BlogDetailPage() {
   const { id } = useParams<{ id: string }>();
+  return <BlogDetail key={id} id={id} />;
+}
+
+function BlogDetail({ id }: { id: string }) {
   const router = useRouter();
   const { userId, hasRole, hasAnyRole } = useAuth();
-  const [post, setPost] = useState<BlogPost | null>(
-    () => getCachedBlogPostById(id) ?? null,
-  );
-  const [loading, setLoading] = useState(
-    () => !getCachedBlogPostById(id),
-  );
-  const [otherPosts, setOtherPosts] = useState<BlogPost[]>(() =>
-    (getCachedBlogPosts()?.posts ?? [])
-      .filter((cachedPost) => cachedPost.id !== id)
-      .slice(0, 3),
+  const preview = getPreviewPosts().find((item) => item.id === id);
+  const [post, setPost] = useState(() => preview ?? getCachedBlogPostById(id) ?? null);
+  const [loading, setLoading] = useState(() => !preview && !getCachedBlogPostById(id));
+  const [otherPosts, setOtherPosts] = useState(() =>
+    (preview ? getPreviewPosts() : getCachedBlogPosts()?.posts ?? [])
+      .filter((item) => item.id !== id).slice(0, 2),
   );
 
   useEffect(() => {
-    const cached = getCachedBlogPostById(id);
-    setPost(cached ?? null);
-    setLoading(!cached);
-
-    getBlogPostById(id)
-      .then(setPost)
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(() => {
+    if (preview) return;
     let cancelled = false;
-
+    getBlogPostById(id)
+      .then((value) => { if (!cancelled) setPost(value); })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setLoading(false); });
     getBlogPosts()
       .then(({ posts }) => {
-        if (!cancelled) {
-          setOtherPosts(posts.filter((item) => item.id !== id).slice(0, 3));
-        }
+        if (!cancelled) setOtherPosts(posts.filter((item) => item.id !== id).slice(0, 2));
       })
       .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+    return () => { cancelled = true; };
+  }, [id, preview]);
 
   const handleDelete = async () => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
@@ -67,210 +59,74 @@ export default function BlogDetailPage() {
   };
 
   const isAuthor = !!userId && post?.createdBy?.id === userId;
-  // ADMIN만 남의 글을 건드릴 수 있다. MANAGER/BLOG_MANAGER는 자기 글만.
-  const canManage =
-    hasRole("ADMIN") ||
-    (hasAnyRole(["MANAGER", "BLOG_MANAGER"]) && isAuthor);
-  const canEdit = canManage;
-  const canDelete = canManage;
+  const canManage = !preview && (hasRole("ADMIN") || (hasAnyRole(["MANAGER", "BLOG_MANAGER"]) && isAuthor));
 
-  if (loading) {
+  if (loading || !post) {
     return (
-      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-8 space-y-6">
-        <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-        <div className="aspect-video w-full bg-muted animate-pulse rounded-xl" />
-        <div className="h-8 bg-muted animate-pulse rounded w-3/4" />
+      <main className={styles.page}>
+        <div className={styles.postColumn}>
+          <EditorialBackLink href="/blog">Blog</EditorialBackLink>
+          {loading ? (
+            <div className={cn(styles.media, styles.postCover, styles.skeleton, "mt-8 animate-pulse")} role="status" aria-label="불러오는 중" />
+          ) : <p className={styles.status}>게시글을 찾을 수 없습니다.</p>}
+        </div>
       </main>
     );
   }
 
-  if (!post) {
-    return (
-      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-8 text-center">
-        <p className="text-muted-foreground">게시글을 찾을 수 없습니다.</p>
-        <Button variant="ghost" className="mt-4" onClick={() => router.push("/blog")}>
-          목록으로 돌아가기
-        </Button>
-      </main>
-    );
-  }
-
-  const date = new Date(post.createdAt).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
   const githubId = post.createdBy?.githubId?.trim();
-
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 text-muted-foreground -ml-2"
-          onClick={() => router.push("/blog")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">목록으로</span>
-        </Button>
-
-        <div className="flex items-center gap-1">
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1"
-              onClick={() => router.push(`/blog/${id}/edit`)}
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="hidden sm:inline">수정</span>
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-destructive hover:text-destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">삭제</span>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {post.category === "tech" ? "Tech" : "Essay"}
-        </span>
-        <h1 className="break-words text-2xl font-bold leading-tight sm:text-3xl">
-          {post.title}
-        </h1>
-        {post.subtitle && (
-          <p className="break-words text-base text-muted-foreground sm:text-lg">
-            {post.subtitle}
-          </p>
-        )}
-        <div className="flex items-center gap-3 pt-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
-            {post.createdBy?.name?.charAt(0) || "?"}
+    <main className={styles.page}>
+      <div className={styles.postColumn}>
+        <header className={styles.postHead}>
+          <div className={styles.backRow}>
+            <EditorialBackLink href="/blog">Blog</EditorialBackLink>
+            {canManage && (
+              <div className="flex items-center gap-1">
+                <Button asChild variant="ghost" size="sm" className={styles.toolButton}>
+                  <Link href={`/blog/${id}/edit`}><Pencil className="size-4" /> 수정</Link>
+                </Button>
+                <Button variant="ghost" size="sm" className={styles.toolButton} onClick={handleDelete}>
+                  <Trash2 className="size-4" /> 삭제
+                </Button>
+              </div>
+            )}
           </div>
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-medium">
-                {post.createdBy?.name || "알 수 없음"}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">{date}</p>
+          <span className={styles.chip}>{post.category === "tech" ? "Tech" : "Essay"}</span>
+          <h1>{post.title}</h1>
+          {post.subtitle && <p className={styles.postSubtitle}>{post.subtitle}</p>}
+          <div className={styles.postByline}>
+            <span>{post.createdBy?.name || "알 수 없음"}</span>
+            <span aria-hidden="true">·</span>
+            <time dateTime={post.createdAt} className={styles.metaNumber}>{formatDotDate(post.createdAt)}</time>
+            {githubId && (
+              <a href={`https://github.com/${encodeURIComponent(githubId)}`} target="_blank" rel="noreferrer"
+                className={styles.githubLink} aria-label={`${post.createdBy?.name || githubId}의 GitHub 프로필 열기`}
+                title={`@${githubId}`}>
+                <Image src="/github-icon.svg" alt="" width={20} height={20} />
+              </a>
+            )}
           </div>
-          {githubId && (
-            <a
-              href={`https://github.com/${encodeURIComponent(githubId)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-auto flex size-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`${post.createdBy?.name || githubId}의 GitHub 프로필 열기`}
-              title={`@${githubId}`}
-            >
-              <Image
-                src="/github-icon.svg"
-                alt=""
-                width={28}
-                height={28}
-              />
-            </a>
-          )}
-        </div>
+        </header>
+        <EditorialMedia src={post.thumbnailUrl} alt={post.title} fallbackTitle={post.title} className={styles.postCover} />
+        <article className={cn(styles.markdown, styles.postBody)}>
+          <MarkdownPreview content={post.description} hiddenImageUrl={post.thumbnailUrl || undefined} />
+        </article>
       </div>
-
-      <hr />
-
-      {post.thumbnailUrl ? (
-        <div className="relative aspect-[2/1] w-full overflow-hidden rounded-[8px] bg-muted after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[8px] after:ring-1 after:ring-inset after:ring-[#bdbdbd]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={post.thumbnailUrl}
-            alt={post.title}
-            className="h-full w-full object-cover"
-          />
-        </div>
-      ) : (
-        <DefaultBlogThumbnail
-          title={post.title}
-          className="aspect-[2/1] w-full"
-        />
-      )}
-
-      <article className="prose-sm sm:prose max-w-none! [&_*]:!text-black">
-        <MarkdownPreview
-          content={post.description}
-          hiddenImageUrl={post.thumbnailUrl || undefined}
-        />
-      </article>
-
-      <div className="pt-12 sm:pt-16">
-        {otherPosts.length > 0 && (
-          <section className="border-t border-black/15 pt-8" aria-labelledby="other-posts-heading">
-            <h2
-              id="other-posts-heading"
-              className="font-cnu-display text-3xl font-bold sm:text-4xl"
-            >
-              블로그의 다른 글
-            </h2>
-
-            <div className="mt-5 divide-y divide-black/10 border-y border-black/10">
-              {otherPosts.map((item) => {
-                const itemDate = new Date(item.createdAt).toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                });
-
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/blog/${item.id}`}
-                    className="group flex min-w-0 items-center gap-4 py-5 sm:gap-6"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium text-[#2d6f50]">
-                          {item.category === "tech" ? "Tech" : "Essay"}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span>{item.createdBy?.name || "알 수 없음"}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{itemDate}</span>
-                      </div>
-                      <h3 className="mt-2 line-clamp-2 text-lg leading-snug font-semibold transition-colors group-hover:text-[#2d6f50] sm:text-xl">
-                        {item.title}
-                      </h3>
-                      {item.subtitle && (
-                        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                          {item.subtitle}
-                        </p>
-                      )}
-                    </div>
-                    <ArrowRight className="size-5 shrink-0 text-[#2d6f50] transition-transform group-hover:translate-x-1" />
-                  </Link>
-                );
-              })}
+      {otherPosts.length > 0 && (
+        <>
+          <EditorialDivider />
+          <section className={cn(styles.shell, styles.morePosts)} aria-labelledby="more-posts">
+            <div className={styles.moreHeading}>
+              <h2 id="more-posts">More posts</h2>
+              <Link href="/blog" className={styles.textLink}>
+                전체 글 보기 <ArrowRight size={14} aria-hidden="true" />
+              </Link>
             </div>
+            {otherPosts.map((item) => <EditorialBlogRow key={item.id} post={item} compact />)}
           </section>
-        )}
-
-        <div className="flex justify-center pt-10">
-          <Link
-            href="/blog"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[#14231b] bg-white px-7 text-sm font-semibold text-[#14231b] transition-colors hover:bg-[#14231b] hover:text-white sm:text-base"
-          >
-            <ArrowLeft className="size-4" />
-            블로그 목록으로
-          </Link>
-        </div>
-      </div>
+        </>
+      )}
     </main>
   );
 }

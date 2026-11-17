@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,8 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Loader2, X, Check, ClipboardPaste } from "lucide-react";
+import { Search, Loader2, X, Check, ClipboardPaste, Plus, CalendarDays } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { getAllQuarters, getCurrentQuarter } from "@/lib/api/quarter";
@@ -42,6 +40,7 @@ import {
   LectureRoomScheduleImportUser,
   LectureRoomScheduleResponseDto,
 } from "@/lib/interfaces/lecture-room-schedule";
+import styles from "./timetable.module.css";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -249,6 +248,7 @@ export default function LectureRoomSchedulePage() {
 
   // Slot dialog
   const [slotDialogOpen, setSlotDialogOpen] = useState(false);
+  const slotTrigger = useRef<HTMLButtonElement>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlotIdx, setSelectedSlotIdx] = useState<number>(-1);
   const [creating, setCreating] = useState(false);
@@ -264,6 +264,7 @@ export default function LectureRoomSchedulePage() {
 
   // Filter
   const [hiddenUserIds, setHiddenUserIds] = useState<Set<string>>(new Set());
+  const [compactDay, setCompactDay] = useState(DAYS[0].key);
 
   // Google Form import (admin only)
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -499,27 +500,13 @@ export default function LectureRoomSchedulePage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap justify-between gap-3">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">관리자 시간표</h1>
-          <p className="text-sm text-muted-foreground">관리자용 시간표입니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setImportDialogOpen(true)}
-              disabled={!selectedQuarterId}
-            >
-              <ClipboardPaste className="mr-1.5 h-4 w-4" />
-              응답 가져오기
-            </Button>
-          )}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <h1>관리자 시간표</h1>
+        <div className="flex flex-wrap items-center gap-2">
           {canManageAll ? (
             <Select value={selectedQuarterId} onValueChange={setSelectedQuarterId}>
-              <SelectTrigger className="w-auto h-7 border-0 shadow-none bg-transparent px-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground rounded-md gap-1 [&>svg]:opacity-50">
+              <SelectTrigger aria-label="분기 선택" className="w-auto gap-2.5">
+                <CalendarDays aria-hidden="true" />
                 <SelectValue placeholder="분기 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -531,204 +518,148 @@ export default function LectureRoomSchedulePage() {
               </SelectContent>
             </Select>
           ) : (
-          // LECTURE_ROOM_MANAGER: 현재 분기를 dropdown이 아닌 단순 텍스트로만 표시.
-            <span className="flex h-7 items-center px-2 text-sm font-medium text-muted-foreground">
-              {currentQuarter ? `${currentQuarter.year} ${currentQuarter.season}` : ""}
-            </span>
+            currentQuarter && (
+              <span className={styles.quarterLabel}>
+                <CalendarDays size={16} aria-hidden="true" />
+                {currentQuarter.year} {currentQuarter.season}
+              </span>
+            )
+          )}
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => setImportDialogOpen(true)}
+              disabled={!selectedQuarterId}
+            >
+              <ClipboardPaste aria-hidden="true" />
+              응답 가져오기
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Filter chips */}
-      {userList.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {userList.map((u) => {
-            const color = USER_COLORS[u.colorIdx];
-            const visible = !hiddenUserIds.has(u.id);
-            return (
-              <div
-                key={u.id}
-                className="flex items-center gap-1.5 text-xs px-2 py-1 rounded border cursor-pointer select-none"
-                style={{
-                  backgroundColor: visible ? color.bg : undefined,
-                  borderColor: visible ? color.border : "#E2E8F0",
-                  color: visible ? color.text : "#94A3B8",
-                  opacity: visible ? 1 : 0.5,
-                }}
-                onClick={() => toggleUserVisibility(u.id)}
-              >
-                <Checkbox
-                  checked={visible}
-                  onCheckedChange={() => toggleUserVisibility(u.id)}
-                  style={
-                    visible
-                      ? {
-                          borderColor: color.border,
-                          backgroundColor: color.border,
-                        }
-                      : undefined
-                  }
-                />
-                <span>{u.name}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <section className={styles.timetable} aria-label="주간 시간표">
+        {userList.length > 0 && (
+          <div className={styles.filters} role="group" aria-label="관리자 표시">
+            <span className={styles.filterLabel} aria-hidden="true">관리자 표시</span>
+            {userList.map((u) => {
+              const color = USER_COLORS[u.colorIdx];
+              const visible = !hiddenUserIds.has(u.id);
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  className={styles.filter}
+                  aria-pressed={visible}
+                  onClick={() => toggleUserVisibility(u.id)}
+                >
+                  <span
+                    className={styles.filterMarker}
+                    style={visible ? { backgroundColor: color.text } : undefined}
+                    aria-hidden="true"
+                  >
+                    {visible && <Check size={10} strokeWidth={3} />}
+                  </span>
+                  {u.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {/* Timetable */}
-      <Card className="w-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-normal text-muted-foreground">
-            관리 시간을 클릭하여 등록하거나 삭제할 수 있습니다.
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div
-              className="overflow-auto rounded border border-border"
-              style={{ maxHeight: "600px", userSelect: "none" }}
+        <div className={styles.days} role="group" aria-label="요일 선택">
+          {DAYS.map((day) => (
+            <button
+              key={day.key}
+              type="button"
+              aria-label={day.label}
+              aria-pressed={compactDay === day.key}
+              onClick={() => setCompactDay(day.key)}
             >
-              <table
-                className="border-collapse text-xs w-full"
-                style={{ tableLayout: "fixed" }}
-              >
-                <colgroup>
-                  <col style={{ width: "72px" }} />
-                  {DAYS.map((day) => (
-                    <col key={day.key} />
-                  ))}
-                </colgroup>
-                <thead className="sticky top-0 z-10 bg-background">
-                  <tr>
-                    <th className="sticky left-0 z-20 bg-background border border-border px-2 py-1.5 text-right text-muted-foreground font-normal" />
-                    {DAYS.map((day) => (
-                      <th
-                        key={day.key}
-                        className="border border-border px-2 py-1.5 text-center font-medium"
-                      >
-                        <span className="hidden sm:inline">{day.label}</span>
-                        <span className="sm:hidden">{day.short}</span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {TIME_SLOTS.map((slot, idx) => {
-                    return (
-                      <tr key={slot} style={{ borderTop: "2px solid #CBD5E1" }}>
-                        {/* Time label */}
+              {day.short}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.board}>
+          <table className={styles.table} aria-busy={loading}>
+            <caption className="sr-only">관리자 배정 시간표</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={styles.timeColumn}>교시</th>
+                {DAYS.map((day) => (
+                  <th key={day.key} scope="col" data-day-hidden={day.key !== compactDay}>
+                    {day.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {TIME_SLOTS.map((slot, idx) => {
+                const range = `${formatSlotTime(slot)} – ${getClassEndTime(slot)}`;
+                return (
+                  <tr key={slot}>
+                    <th scope="row" className={styles.period}>
+                      <span>{idx + 1}교시</span>
+                      <span className={styles.range}>{range}</span>
+                    </th>
+                    {DAYS.map((day) => {
+                      const slotSchedules = (scheduleMap[day.key]?.[slot] ?? [])
+                        .filter((s) => !hiddenUserIds.has(s.userId))
+                        .sort((a, b) => a.userId.localeCompare(b.userId));
+                      const selected = isCellSelected(day.key, idx);
+                      const names = slotSchedules.map((s) => s.userName).join(", ");
+                      return (
                         <td
-                          className="sticky left-0 bg-background border-r border-border text-right pr-2 text-muted-foreground"
-                          style={{
-                            minWidth: "72px",
-                            width: "72px",
-                            height: "56px",
-                            fontSize: "11px",
-                            verticalAlign: "middle",
-                            lineHeight: "1.4",
-                          }}
+                          key={day.key}
+                          className={styles.cell}
+                          data-day-hidden={day.key !== compactDay}
+                          data-selected={selected}
                         >
-                          <div>{formatSlotTime(slot)}</div>
-                          <div>~{getClassEndTime(slot)}</div>
-                        </td>
-
-                        {/* Day cells */}
-                        {DAYS.map((day) => {
-                          const slotSchedules = (
-                            scheduleMap[day.key]?.[slot] ?? []
-                          )
-                            .filter((s) => !hiddenUserIds.has(s.userId))
-                            .sort((a, b) => a.userId.localeCompare(b.userId));
-                          const selected = isCellSelected(day.key, idx);
-
-                          return (
-                            <td
-                              key={day.key}
-                              className="border cursor-pointer overflow-hidden"
-                              style={{
-                                height: "56px",
-                                padding: 0,
-                                borderColor: "#E2E8F0",
-                                backgroundColor: selected
-                                  ? "#BFDBFE"
-                                  : undefined,
+                          {loading ? (
+                            <Skeleton className={styles.skeleton} />
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.slot}
+                              aria-haspopup="dialog"
+                              aria-label={`${day.label} ${idx + 1}교시 ${range}${names ? `, ${names}` : ""}`}
+                              disabled={!selectedQuarterId}
+                              onClick={(event) => {
+                                slotTrigger.current = event.currentTarget;
+                                handleCellClick(day.key, idx);
                               }}
-                              onClick={() => handleCellClick(day.key, idx)}
                             >
-                              {/* Split sub-sections per user (hidden when selected) */}
-                              {!selected && slotSchedules.length > 0 && (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    height: "100%",
-                                    width: "100%",
-                                    maxWidth: "100%",
-                                    minWidth: 0,
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {slotSchedules.map((s) => {
-                                    const ci = userColorMap[s.userId] ?? 0;
-                                    const c = USER_COLORS[ci];
-                                    return (
-                                      <div
-                                        key={s.id}
-                                        title={`${s.userName} (${formatSlotTime(slot)})`}
-                                        style={{
-                                          flex: "1 1 0",
-                                          width: 0,
-                                          minWidth: 0,
-                                          height: "100%",
-                                          position: "relative",
-                                          overflow: "hidden",
-                                          backgroundColor: c.bg,
-                                          borderRight: `1px solid ${c.border}`,
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            position: "absolute",
-                                            top: "4px",
-                                            left: "4px",
-                                            maxWidth: "calc(100% - 8px)",
-                                            padding: "1px 4px",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                            backgroundColor: "rgba(255, 255, 255, 0.72)",
-                                            borderRadius: "10px",
-                                            color: c.text,
-                                            fontSize: "9px",
-                                            fontWeight: 600,
-                                            lineHeight: "14px",
-                                          }}
-                                        >
-                                          {s.userName}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                              {slotSchedules.length ? (
+                                slotSchedules.map((s) => {
+                                  const color = USER_COLORS[userColorMap[s.userId] ?? 0];
+                                  return (
+                                    <span
+                                      key={s.id}
+                                      className={styles.assignment}
+                                      style={{ backgroundColor: color.bg, color: color.text }}
+                                    >
+                                      {s.userName}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <Plus className={styles.emptySlot} size={16} aria-hidden="true" />
                               )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {isAdmin && (
         <Dialog
@@ -845,7 +776,13 @@ export default function LectureRoomSchedulePage() {
         open={slotDialogOpen}
         onOpenChange={(open) => !open && closeSlotDialog()}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            slotTrigger.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{selectedTimeLabel}</DialogTitle>
           </DialogHeader>

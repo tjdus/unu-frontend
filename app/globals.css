@@ -133,12 +133,51 @@ html body[data-scroll-locked] {
   margin-right: 0 !important;
 }
 
+body:has(#home-top) {
+  --font-cnu-home: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  font-family: var(--font-cnu-home);
+}
+
+/* Home uses the deep-green surface all the way down, footer included. */
+body:has(#home-top) footer {
+  background-color: #10603f;
+}
+
 .font-cnu-body {
-  font-family: var(--font-inter), var(--font-geist-sans), sans-serif;
+  font-family: var(--font-cnu-home, var(--font-inter), var(--font-geist-sans), sans-serif);
 }
 
 .font-cnu-display {
-  font-family: var(--font-instrument-sans), var(--font-geist-sans), sans-serif;
+  font-family: var(--font-cnu-home, var(--font-instrument-sans), var(--font-geist-sans), sans-serif);
+}
+
+.font-cnu-numeric {
+  font-family: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.cnu-nav-item {
+  position: relative;
+}
+
+.cnu-nav-item::after {
+  position: absolute;
+  inset-inline: 18%;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background-color: #b4e2c9;
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.15);
+  transition: opacity 120ms ease-out, transform 340ms ease-in-out;
+}
+
+.cnu-nav-item:hover::after,
+.cnu-nav-item:focus-visible::after,
+.cnu-nav-item[aria-current="page"]::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 @keyframes hero-stat-reveal {
@@ -160,6 +199,10 @@ html body[data-scroll-locked] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cnu-nav-item::after {
+    transition: none;
+  }
+
   .hero-stat-reveal {
     opacity: 1;
     animation: none;
@@ -198,4 +241,14 @@ html body[data-scroll-locked] {
 .ProseMirror img.ProseMirror-selectednode {
   outline: none;
   box-shadow: 0 0 0 2px #2383e2;
+}
+
+/* Home: gentle native section snapping. A scroll that comes to rest near a section's
+   start settles onto it; tall sections still scroll freely inside. */
+html:has(#home-top) {
+  scroll-snap-type: y proximity;
+}
+
+#home-top > section {
+  scroll-snap-align: start;
 }

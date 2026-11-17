@@ -1,13 +1,92 @@
 import { Plus } from "lucide-react";
+import type { CSSProperties } from "react";
 import { ScrollReveal } from "@/components/custom/scroll-reveal";
+import { HomeFaqSpread } from "@/components/custom/home-faq-spread";
+import faqSpreadStyles from "@/components/custom/home-faq-spread.module.css";
 import type { HomeFaqItem } from "@/lib/home-faq";
 
 interface HomeFaqProps {
   items: HomeFaqItem[];
+  /** "deep": accordion with animated dividers for the deep-green home. */
+  variant?: "default" | "deep";
 }
 
-export function HomeFaq({ items }: HomeFaqProps) {
+const graphemes = new Intl.Segmenter("ko");
+
+function FaqAnswer({ answer }: { answer: string }) {
+  let letterIndex = 0;
+
+  return (
+    <p className="whitespace-pre-line break-keep pb-7 pr-14 text-lg leading-[1.7] font-light text-[var(--deep-on-variant)] [overflow-wrap:anywhere] sm:pr-[200px] sm:text-xl">
+      <span className={faqSpreadStyles.answerText}>{answer}</span>
+      <span className={faqSpreadStyles.answerMotion} aria-hidden="true">
+        {answer.split(/(\s+)/).map((word, wordIndex) =>
+          !word || /^\s+$/.test(word) ? word : (
+            <span key={wordIndex} className={faqSpreadStyles.answerWord}>
+              {Array.from(graphemes.segment(word), ({ segment, index }) => (
+                <span
+                  key={index}
+                  className={faqSpreadStyles.answerLetter}
+                  style={{
+                    "--letter-delay": `${540 * (1 - Math.exp(-letterIndex++ / 17))}ms`,
+                  } as CSSProperties}
+                >
+                  {segment}
+                </span>
+              ))}
+            </span>
+          ),
+        )}
+      </span>
+    </p>
+  );
+}
+
+function DeepFaq({ items }: { items: HomeFaqItem[] }) {
+  return (
+    <section aria-labelledby="home-faq-heading">
+      <ScrollReveal>
+        <h2
+          id="home-faq-heading"
+          className="text-[clamp(64px,9vw,120px)] leading-[0.9] font-light tracking-[0.02em] uppercase"
+        >
+          FAQ
+        </h2>
+      </ScrollReveal>
+
+      <HomeFaqSpread className="mt-10">
+        {items.map((item, index) => (
+          <div
+            key={item.id}
+            className={faqSpreadStyles.row}
+            // distance from the middle row: the entrance spreads outward from there
+            style={{ "--d": Math.abs(index - (items.length - 1) / 2) } as CSSProperties}
+          >
+            <details name="home-faq" open={index === 0} className="group">
+              <summary className={`${faqSpreadStyles.reveal} grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_40px] items-center gap-4 py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--deep-accent)] focus-visible:ring-inset sm:gap-6 [&::-webkit-details-marker]:hidden`}>
+                <span className="min-w-0 break-keep text-xl leading-[1.3] font-light transition-colors group-open:text-[var(--deep-accent)] group-hover:text-[var(--deep-accent)] sm:text-[26px]">
+                  {item.question}
+                </span>
+                <span className="grid size-10 place-items-center">
+                  <Plus
+                    aria-hidden="true"
+                    className="size-6 transition-transform duration-300 group-open:rotate-45 motion-reduce:transition-none"
+                  />
+                </span>
+              </summary>
+              <FaqAnswer answer={item.answer} />
+            </details>
+            <span aria-hidden="true" className={faqSpreadStyles.rule} />
+          </div>
+        ))}
+      </HomeFaqSpread>
+    </section>
+  );
+}
+
+export function HomeFaq({ items, variant = "default" }: HomeFaqProps) {
   if (items.length === 0) return null;
+  if (variant === "deep") return <DeepFaq items={items} />;
 
   return (
     <section

@@ -1,0 +1,7 @@
+html[data-public-swipe] {
+  overflow-x: clip;
+}
+
+html[data-public-swipe] body {
+  background: #10603f;
+}

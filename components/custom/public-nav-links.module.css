@@ -1,0 +1,35 @@
+.dock {
+  position: fixed;
+  z-index: 40;
+  inset: auto max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  max-width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
+  overflow-x: auto;
+  color: #dcebd2;
+  font: 400 18px/1.2 var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  text-shadow: 0 1px 3px #082a1d, 0 0 8px #082a1d;
+}
+
+.dockLink {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding-inline: 6px;
+  white-space: nowrap;
+}
+
+.dockLink:is(:hover, [aria-current="page"]) {
+  color: #8fe3b0;
+}
+
+.dockLink:focus-visible {
+  outline: 2px solid #8fe3b0;
+  outline-offset: -3px;
+  border-radius: 4px;
+}
+
+:global(html[data-public-swipe]) .dock {
+  visibility: hidden;
+}

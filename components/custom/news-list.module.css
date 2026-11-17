@@ -1,0 +1,103 @@
+/* Home "News" entrance: reads like a feed being printed. Rows arrive top-down; each
+   dashed rule draws left to right and the row's text rises out of a mask behind it.
+   Keyed on [data-play] (useReplayInView), so it replays on every visit. */
+.list {
+  --rule: var(--deep-outline, #7fb394);
+  --step: 110ms;
+  position: relative;
+}
+
+.row {
+  position: relative;
+}
+
+.rule {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: repeating-linear-gradient(to right, var(--rule) 0 4px, transparent 4px 8px);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.ruleTop {
+  top: 0;
+  bottom: auto;
+}
+
+/* Masked line: the text slides up from below its own baseline. */
+.mask {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  /* room for descenders / the unread dot while clipped */
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+}
+
+.rise {
+  display: block;
+  transform: translateY(110%);
+}
+
+.fade {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+.list[data-play] .rule {
+  animation: news-rule 900ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  animation-delay: calc(var(--i, 0) * var(--step));
+}
+
+.list[data-play] .rise {
+  animation: news-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * var(--step) + 160ms);
+}
+
+.list[data-play] .fade {
+  animation: news-fade 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * var(--step) + 320ms);
+}
+
+@keyframes news-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes news-rise {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes news-fade {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rule,
+  .rise,
+  .fade {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+  }
+}

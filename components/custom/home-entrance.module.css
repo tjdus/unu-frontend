@@ -1,0 +1,101 @@
+.home {
+  --home-entrance-delay: 1360ms;
+}
+
+.home[data-home-entrance-complete] {
+  --home-entrance-delay: 0ms;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  touch-action: none;
+  animation: leave 140ms ease-out var(--home-entrance-delay) forwards;
+}
+
+.screen[data-phase="leaving"] {
+  animation: leave 140ms ease-out forwards;
+}
+
+.screen[data-phase="done"] {
+  display: none;
+}
+
+:global(html[data-public-swipe]) .screen {
+  display: none;
+}
+
+.logo {
+  display: block;
+  flex: none;
+}
+
+.logoFill {
+  animation: reveal 310ms cubic-bezier(0, 0, 0.58, 1) 560ms both;
+}
+
+.outline,
+.letterStroke {
+  stroke-dasharray: 1;
+}
+
+.outline {
+  animation:
+    draw 510ms ease-in-out 50ms both,
+    outlineOpacity 840ms linear both;
+}
+
+.letter {
+  animation: reveal 40ms linear 880ms both;
+}
+
+.letterStroke {
+  animation: draw 480ms ease-in-out 880ms both;
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes outlineOpacity {
+  0%, 5.95% { opacity: 0; }
+  10.71% { opacity: 1; }
+  75% {
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  100% { opacity: 0; }
+}
+
+@keyframes reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes leave {
+  from { opacity: 1; visibility: visible; }
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home {
+    --home-entrance-delay: 0ms;
+  }
+
+  .screen {
+    animation: leave 1ms step-end 480ms forwards;
+  }
+
+  .logoFill,
+  .outline,
+  .letter,
+  .letterStroke {
+    animation: none;
+  }
+}

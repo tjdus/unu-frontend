@@ -33,6 +33,6 @@ export const HOME_FAQ_ITEMS: HomeFaqItem[] = [
     id: "room",
     question: "학회실은 어디에 있나요?",
     answer:
-      "CNU 학회실은 서강대학교 리치과학관(R관) 9층, R912에 있습니다. 아래 위치 안내에서 지도를 확인할 수 있으며, 방문이나 이용 관련 문의는 admin@cnu.team으로 보내주세요.",
+      "CNU 학회실은 서강대학교 리치과학관(R관) 9층, R912입니다. 아래 위치 안내에서 지도를 확인할 수 있으며, 방문이나 이용 관련 문의는 admin@cnu.team으로 보내주세요.",
   },
 ];

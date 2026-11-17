@@ -1,23 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import styles from "@/components/custom/editorial.module.css";
+import { cn } from "@/lib/utils";
 import { login as loginApi } from "@/lib/api/auth";
 import { LoginRequest } from "@/lib/interfaces/auth";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -79,89 +67,49 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
-            <span className="relative size-8 overflow-hidden rounded-lg">
-              <Image
-                src="/cnu-header-logo.png"
-                alt=""
-                fill
-                sizes="32px"
-                className="object-cover"
-                priority
-              />
-            </span>
-            CNU
-          </CardTitle>
-          <CardDescription>
-            학회 운영 및 활동 관리를 위한 내부 시스템입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <main className={styles.page}>
+      <div className={cn(styles.shell, styles.loginBody)}>
+        <div className={styles.loginIntro}>
+          <h1>Login</h1>
+          <p>
+            학회원 전용 공간입니다.<br />
+            계정 문의는 <a href="mailto:admin@cnu.team">admin@cnu.team</a>으로 보내 주세요.
+          </p>
+        </div>
+        <div className={styles.loginPanel}>
           {sessionExpired ? (
-            <div className="mb-4 rounded-md bg-amber-50 p-3 text-center text-sm text-amber-800">
+            <div role="status" className={styles.notice}>
               세션이 만료되어 로그아웃 되었습니다.
             </div>
           ) : safeRedirect ? (
-            <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+            <div role="status" className={styles.notice}>
               로그인이 필요한 페이지입니다. 로그인 후 이어서 진행해주세요.
             </div>
           ) : null}
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="username">아이디</FieldLabel>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder="아이디를 입력하세요"
-                  className="h-11"
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">비밀번호</FieldLabel>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="비밀번호를 입력하세요"
-                  className="h-11"
-                  required
-                />
-              </Field>
-              {error && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
-              <Field>
-                <Button
-                  type="submit"
-                  className="h-11 w-full bg-[#264638] text-white hover:bg-[#1f382d]"
-                  disabled={loading}
-                >
-                  {loading ? "로그인 중..." : "로그인"}
-                </Button>
-              </Field>
-              <FieldDescription className="text-center text-xs text-muted-foreground">
-                학회원 및 운영진만 로그인이 가능합니다.
-                <br />
-                계정 관련 문의는 운영진에게 연락해주세요.
-              </FieldDescription>
-            </FieldGroup>
+          <form className={styles.loginForm} onSubmit={handleSubmit}>
+            <div className={styles.loginField}>
+              <label htmlFor="username">이메일 또는 아이디</label>
+              <Input id="username" name="username" type="text" placeholder="name@sogang.ac.kr"
+                required autoComplete="username" autoCapitalize="none" spellCheck={false} />
+            </div>
+            <div className={styles.loginField}>
+              <label htmlFor="password">비밀번호</label>
+              <Input id="password" name="password" type="password" placeholder="••••••••"
+                required autoComplete="current-password" />
+            </div>
+            {error && <div role="alert" className={cn(styles.notice, styles.error)}>{error}</div>}
+            <Button type="submit" className={styles.loginSubmit} disabled={loading}>
+              {loading ? "로그인 중..." : "로그인"}
+            </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </main>
   );
 };
 
 const LoginPage = () => (
-  <Suspense fallback={null}>
+  <Suspense fallback={<main className={styles.page} aria-busy="true" />}>
     <LoginForm />
   </Suspense>
 );

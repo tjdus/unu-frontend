@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Sans, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Google_Sans_Flex, Instrument_Sans, Inter, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+import "./public-page-swipe.css";
 import { NavigationBar } from "@/components/custom/navigation-bar";
 import { SiteFooter } from "@/components/custom/site-footer";
+import { PublicPageSwipe } from "@/components/custom/public-page-swipe";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { SidebarProvider } from "@/lib/contexts/SidebarContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -30,6 +32,20 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
 });
 
+const googleSansFlex = Google_Sans_Flex({
+  variable: "--font-google-sans-flex",
+  weight: "variable",
+  preload: false,
+  adjustFontFallback: false,
+});
+
+const notoSansKr = Noto_Sans_KR({
+  variable: "--font-noto-sans-kr",
+  weight: "variable",
+  preload: false,
+  adjustFontFallback: false,
+});
+
 export const metadata: Metadata = {
   title: "CNU&U",
   description: "서강대학교 CNU 운영 및 활동 관리 시스템",
@@ -46,19 +62,19 @@ export default function RootLayout({
   return (
     <html lang="ko" data-scroll-behavior="smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${instrumentSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${instrumentSans.variable} ${googleSansFlex.variable} ${notoSansKr.variable} antialiased`}
       >
         <AuthProvider>
           <NoticeUnreadProvider>
             <ActivityNoticeUnreadProvider>
               <MenuNotificationProvider>
-                <div className="min-h-screen flex flex-col">
+                <PublicPageSwipe>
                   <SidebarProvider>
                     <NavigationBar />
                     {children}
                     <SiteFooter />
                   </SidebarProvider>
-                </div>
+                </PublicPageSwipe>
                 <Toaster />
               </MenuNotificationProvider>
             </ActivityNoticeUnreadProvider>

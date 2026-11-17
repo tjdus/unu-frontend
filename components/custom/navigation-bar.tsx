@@ -21,6 +21,9 @@ import { useSidebarBadges } from "@/lib/hooks/useSidebarBadges";
 import { PublicNavLinks } from "@/components/custom/public-nav-links";
 import { TimedAnchorLink } from "@/components/custom/timed-anchor-link";
 import { menuConfig } from "@/lib/constants/menu-config";
+import aboutStyles from "@/app/about/about.module.css";
+import homeStyles from "./home-deep.module.css";
+import editorialStyles from "./editorial.module.css";
 
 const INTERNAL_ROUTE_PREFIXES = Array.from(
   new Set([
@@ -48,23 +51,44 @@ export function NavigationBar() {
   const isMainRoute = INTERNAL_ROUTE_PREFIXES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
+  const [, route, , action] = pathname.split("/");
+  // Blog / Work pages, including their create and edit screens, sit on the deep editorial surface.
+  const isEditorial =
+    pathname === "/login" ||
+    ((route === "portfolio" || route === "blog") && (!action || action === "edit"));  const isDeepHeader = pathname === "/about" || isEditorial;
 
   const rightContent = () => {
-    if (isLoading) return <div className="h-16 w-20 sm:w-[133px]" />;
+    if (isLoading) return isDeepHeader ? null : <div className="h-16 w-20 sm:w-[133px]" />;
 
     if (userRole === "GUEST") {
       return (
         <Link
           href="/login"
-          className="font-cnu-body flex h-16 items-center justify-center px-4 text-base text-white/80 transition-colors hover:bg-white/10 hover:text-white sm:w-[133px] sm:px-0 sm:text-[17.8px]"
+          aria-current={pathname === "/login" ? "page" : undefined}
+          className={isDeepHeader
+            ? `${homeStyles.heroLogin} ${aboutStyles.navLogin} ${editorialStyles.navLogin}`
+            : "cnu-nav-item font-cnu-body flex h-16 items-center justify-center px-4 text-base text-white/80 transition-colors hover:text-white sm:w-[133px] sm:px-0 sm:text-[17.8px]"}
         >
-          로그인
+          {isDeepHeader ? "Login" : "로그인"}
+        </Link>
+      );
+    }
+
+    // Public deep pages (About Us / Work / Blog / Login): a plain "My Page" link in the
+    // same type as "Login", like the home hero, instead of the profile dropdown.
+    if (isDeepHeader) {
+      return (
+        <Link
+          href="/home"
+          className={`${homeStyles.heroLogin} ${aboutStyles.navLogin} ${editorialStyles.navLogin}`}
+        >
+          My Page
         </Link>
       );
     }
 
     return (
-      <div className="flex h-16 items-center gap-2 pr-3 md:gap-4 md:pr-6">
+      <div className={isDeepHeader ? homeStyles.heroLogin : "flex h-16 items-center gap-2 pr-3 md:gap-4 md:pr-6"}>
         {/* {currentQuarter && (
           <span className="font-cnu-body hidden text-sm font-medium text-[#777777] sm:block">
            {currentQuarter.year} {currentQuarter.season.toUpperCase()}
@@ -75,7 +99,10 @@ export function NavigationBar() {
           <Button
             variant="ghost"
             size="sm"
-            className="font-cnu-body gap-2 rounded-none text-white/80 hover:bg-white/10 hover:text-white"
+            className={isDeepHeader
+              ? "font-cnu-body gap-2 px-2 hover:bg-transparent hover:text-white"
+              : "cnu-nav-item font-cnu-body h-full gap-2 rounded-none text-white/80 hover:bg-transparent hover:text-white"}
+            aria-label={isDeepHeader ? "프로필 메뉴" : undefined}
           >
             <span className="relative">
               <User className="size-4" />
@@ -129,13 +156,39 @@ export function NavigationBar() {
     );
   };
 
+  // The home page carries its own hero navigation instead of the global bar.
+  if (pathname === "/") return null;
+  // The logged-in app uses its own sidebar (brand, home, logout) instead of the global bar.
+  if (isMainRoute) return null;
+
+  if (isDeepHeader) {
+    return (
+      <header className={isEditorial ? `${aboutStyles.header} ${editorialStyles.archiveHeader}` : aboutStyles.header}>
+        <div className={aboutStyles.headerInner}>
+          <PublicNavLinks variant="deep" />
+          {rightContent()}
+          <Link href="/" className={aboutStyles.brand} aria-label="CNU 홈">
+            <Image
+              src="/cnu-header-logo.png"
+              alt=""
+              width={28}
+              height={28}
+              className="rounded-[7px]"
+              priority
+            />
+          </Link>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center border-b border-white/10 bg-[#14231b] pl-4 md:pl-[26px]">
       {!isLoading && userRole !== "GUEST" && isMainRoute && (
         <Button
           variant="ghost"
           size="icon"
-          className="mr-2 text-white hover:bg-white/10 hover:text-white md:hidden"
+          className="cnu-nav-item mr-2 h-full rounded-none text-white hover:bg-transparent hover:text-white md:hidden"
           onClick={() => setIsOpen(true)}
           aria-label="메뉴 열기"
         >

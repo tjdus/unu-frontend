@@ -1,0 +1,313 @@
+/*
+ * Logged-in app · M3 minimal theme (Figma: "Pages · About detail & logged-in").
+ * White main surface, deep-green sidebar. Scoped with body:has([data-app-m3]) so it also
+ * reaches portalled UI (dialogs, selects, menus) but leaves the public pages alone.
+ * Colours mirror the "Light" / "Deep" modes of the CNU · M3 Theme variables.
+ */
+body:has([data-app-m3]) {
+  --m3-primary: #37825d;
+  --m3-on-primary: #ffffff;
+  --m3-primary-container: #b8f0cf;
+  --m3-on-primary-container: #002113;
+  --m3-secondary-container: #d0e8d7;
+  --m3-on-secondary-container: #0b1f15;
+  --m3-error: #ba1a1a;
+  --m3-error-container: #ffdad6;
+  --m3-surface: #ffffff;
+  --m3-surface-low: #f0f5ef;
+  --m3-surface-high: #e5eae4;
+  --m3-on-surface: #171d19;
+  --m3-on-surface-variant: #404943;
+  --m3-outline: #707971;
+  --m3-outline-variant: #c0c9c0;
+
+  /* Deep (sidebar / top bar) */
+  --m3-deep: #10603f;
+  --m3-deep-high: #1c7451;
+  --m3-deep-on: #dcebd2;
+  --m3-deep-on-variant: #a8cbb2;
+  --m3-deep-accent: #8fe3b0;
+  --m3-deep-divider: #2b8a5e;
+
+  /* shadcn tokens → M3 roles */
+  --radius: 0.75rem;
+  --background: var(--m3-surface);
+  --foreground: var(--m3-on-surface);
+  --card: var(--m3-surface);
+  --card-foreground: var(--m3-on-surface);
+  --popover: var(--m3-surface);
+  --popover-foreground: var(--m3-on-surface);
+  --primary: var(--m3-primary);
+  --primary-foreground: var(--m3-on-primary);
+  --secondary: var(--m3-secondary-container);
+  --secondary-foreground: var(--m3-on-secondary-container);
+  --muted: var(--m3-surface-low);
+  --muted-foreground: var(--m3-on-surface-variant);
+  --accent: var(--m3-surface-high);
+  --accent-foreground: var(--m3-on-surface);
+  --destructive: var(--m3-error);
+  --border: var(--m3-outline-variant);
+  --input: var(--m3-outline);
+  --ring: var(--m3-primary);
+
+  font-family: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  /* Green frame around the white page panel (also shown on overscroll). */
+  background: var(--m3-deep);
+  color: var(--m3-on-surface);
+}
+
+/* Scrollbar gutter / overscroll around the panel stays green too. */
+html:has([data-app-m3]) {
+  background: #10603f;
+  scrollbar-color: #2b8a5e #10603f;
+}
+
+/* White page panel inside the green frame. The right margin hands back the scrollbar's
+   width (--app-scrollbar, set by the layout) so the visible green matches the top;
+   the bottom gets a deeper margin. */
+.app-panel {
+  --panel-gap: 8px;
+  --panel-bottom: 16px;
+  margin: var(--panel-gap);
+  margin-right: max(0px, calc(var(--panel-gap) - var(--app-scrollbar, 0px)));
+  margin-bottom: var(--panel-bottom);
+  min-height: calc(100dvh - var(--panel-gap) - var(--panel-bottom));
+}
+
+@media (min-width: 768px) {
+  .app-panel {
+    --panel-gap: 12px;
+    --panel-bottom: 28px;
+    margin-left: 0;
+  }
+}
+
+/* App shell: no site footer (contact / © live on the public site). */
+body:has([data-app-m3]) [data-site-footer] {
+  display: none;
+}
+
+/* ── Page frame: every page starts at the same left edge ───────────── */
+/* M3 window margins (compact 16, medium 24, expanded 32+) and one centered body column. */
+[data-app-m3] {
+  --app-gutter: 16px;
+  --app-body: 1120px; /* content width incl. gutters */
+}
+
+@media (min-width: 600px) {
+  [data-app-m3] {
+    --app-gutter: 24px;
+  }
+}
+
+@media (min-width: 840px) {
+  [data-app-m3] {
+    --app-gutter: 40px;
+  }
+}
+
+/* Page roots are `mx-auto max-w-* px-6` with different widths. Give them all the same
+   centered column so every heading starts at the same x, wherever you navigate. */
+[data-app-main] > :not(header),
+[data-app-main] > :not(header) main {
+  width: 100%;
+  max-width: var(--app-body);
+  margin-inline: auto;
+  padding-left: var(--app-gutter);
+  padding-right: var(--app-gutter);
+  /* Top space under the app bar matches the side margins; extra room at the end. */
+  padding-top: var(--app-gutter);
+  padding-bottom: calc(var(--app-gutter) * 2);
+}
+
+/* Wrappers that hold their own <main> (online lecture) don't add a second column. */
+[data-app-main] > :not(header):has(main) {
+  max-width: none;
+  padding: 0;
+}
+
+/* Top bar content lines up with the body column. */
+[data-app-main] > header {
+  padding-inline: max(var(--app-gutter), calc((100% - var(--app-body)) / 2 + var(--app-gutter)));
+}
+
+/* Page header (title + description + actions) is divided from the content below. */
+[data-app-main] > :not(header) > :first-child:has(h1),
+[data-app-main] > :not(header) main > :first-child:has(h1),
+/* header right after a standalone back link */
+[data-app-main] > :not(header) > :first-child:not(:has(h1)) + :has(h1),
+/* bare title + description (online lecture) */
+[data-app-main] main > h1:first-child + p {
+  border-bottom: 1px solid var(--m3-outline);
+  padding-bottom: 24px;
+}
+
+/* ── Page type ─────────────────────────────────────────────────────── */
+[data-app-m3] h1 {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+[data-app-m3] h2 {
+  font-weight: 500;
+}
+
+/* ── Buttons: full pill, M3 label weight ───────────────────────────── */
+body:has([data-app-m3]) [data-slot="button"] {
+  border-radius: 9999px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+body:has([data-app-m3]) [data-slot="button"][data-variant="outline"] {
+  border-color: var(--m3-outline-variant);
+  background: transparent;
+  color: var(--m3-primary);
+}
+
+body:has([data-app-m3]) [data-slot="button"][data-variant="outline"]:hover,
+body:has([data-app-m3]) [data-slot="button"][data-variant="ghost"]:hover {
+  background: color-mix(in srgb, var(--m3-primary) 8%, transparent);
+}
+
+body:has([data-app-m3]) [data-slot="button"][data-variant="link"] {
+  color: var(--m3-primary);
+}
+
+/* ── Outlined boxes: same corner and stroke as the text fields ─────── */
+/* Cards and any other bordered, rounded box in the app (lists, panels, empty states…)
+   use the search field's 4px corner and outline colour. Pills, chips and circles keep
+   their own shapes. */
+body:has([data-app-m3]) [data-slot="card"],
+[data-app-main]
+  [class~="border"]:is([class*="rounded-"]):not(
+    [data-slot="button"],
+    [data-slot="badge"],
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"],
+    [role="checkbox"],
+    [role="switch"],
+    .rounded-full,
+    button
+  ) {
+  border-color: var(--m3-outline);
+  border-radius: 4px;
+}
+
+body:has([data-app-m3]) [data-slot="card"] {
+  border-width: 1px;
+  border-style: solid;
+  background: var(--m3-surface);
+  box-shadow: none;
+}
+
+body:has([data-app-m3]) [data-slot="card-title"] {
+  font-weight: 500;
+}
+
+/* ── Badges → M3 assist chips (8px corners) ────────────────────────── */
+body:has([data-app-m3]) [data-slot="badge"] {
+  min-height: 26px;
+  border-radius: 8px;
+  padding-inline: 10px;
+  font-weight: 500;
+}
+
+/* ── Text fields: outlined, 4px corners, 2px primary focus ─────────── */
+body:has([data-app-m3]) [data-slot="input"],
+body:has([data-app-m3]) [data-slot="textarea"],
+body:has([data-app-m3]) [data-slot="select-trigger"] {
+  border-color: var(--m3-outline);
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+}
+
+body:has([data-app-m3]) [data-slot="input"],
+body:has([data-app-m3]) [data-slot="select-trigger"] {
+  min-height: 44px;
+}
+
+body:has([data-app-m3]) [data-slot="input"]:focus-visible,
+body:has([data-app-m3]) [data-slot="textarea"]:focus-visible,
+body:has([data-app-m3]) [data-slot="select-trigger"]:focus-visible {
+  border-color: var(--m3-primary);
+  box-shadow: inset 0 0 0 1px var(--m3-primary);
+}
+
+body:has([data-app-m3]) [data-slot="select-content"],
+body:has([data-app-m3]) [data-slot="dropdown-menu-content"] {
+  border-color: var(--m3-outline-variant);
+  border-radius: 4px;
+  background: var(--m3-surface-low);
+}
+
+/* ── Tables: dividers only ─────────────────────────────────────────── */
+body:has([data-app-m3]) [data-slot="table-head"] {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--m3-on-surface-variant);
+}
+
+body:has([data-app-m3]) [data-slot="table-row"] {
+  border-color: var(--m3-outline-variant);
+}
+
+/* ── Tabs → M3 primary tabs (underline indicator) ──────────────────── */
+body:has([data-app-m3]) [data-slot="tabs-list"] {
+  gap: 0;
+  border-bottom: 1px solid var(--m3-outline-variant);
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body:has([data-app-m3]) [data-slot="tabs-trigger"] {
+  position: relative;
+  height: 48px;
+  border: 0;
+  border-radius: 0;
+  padding-inline: 16px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--m3-on-surface-variant);
+  font-weight: 500;
+}
+
+body:has([data-app-m3]) [data-slot="tabs-trigger"][data-state="active"] {
+  background: transparent;
+  box-shadow: none;
+  color: var(--m3-primary);
+}
+
+body:has([data-app-m3]) [data-slot="tabs-trigger"][data-state="active"]::after {
+  position: absolute;
+  right: 16px;
+  bottom: 0;
+  left: 16px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--m3-primary);
+  content: "";
+}
+
+/* ── Progress → M3 linear progress ─────────────────────────────────── */
+body:has([data-app-m3]) [data-slot="progress"] {
+  height: 4px;
+  background: var(--m3-secondary-container);
+}
+
+body:has([data-app-m3]) [data-slot="progress-indicator"] {
+  background: var(--m3-primary);
+}
+
+/* ── Dialogs: M3 extra-large corners ───────────────────────────────── */
+body:has([data-app-m3]) [data-slot="dialog-content"],
+body:has([data-app-m3]) [data-slot="alert-dialog-content"] {
+  border: 0;
+  border-radius: 28px;
+  background: var(--m3-surface-low);
+}

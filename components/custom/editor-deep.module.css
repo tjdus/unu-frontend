@@ -1,0 +1,47 @@
+/*
+ * Blog / Work editors rendered inside the public deep-green page (Figma: "블로그 글 작성 ·
+ * 블로그 페이지", "Work 작성 · Work 페이지"). Re-maps the shadcn tokens so the existing
+ * editor markup (muted text, borders, buttons) reads on the green surface.
+ */
+.editor {
+  --background: #10603f;
+  --foreground: #dcebd2;
+  --card: #136746;
+  --card-foreground: #dcebd2;
+  --primary: #dcebd2;
+  --primary-foreground: #10603f;
+  --secondary: #1c7451;
+  --secondary-foreground: #dcebd2;
+  --muted: #136746;
+  --muted-foreground: #a8cbb2;
+  --accent: #1c7451;
+  --accent-foreground: #dcebd2;
+  --border: #2b8a5e;
+  --input: #7fb394;
+  --ring: #8fe3b0;
+
+  padding-bottom: 120px;
+}
+
+.editor [data-slot="button"] {
+  border-radius: 9999px;
+}
+
+.editor textarea::placeholder,
+.editor input::placeholder {
+  color: color-mix(in srgb, #a8cbb2 60%, transparent);
+}
+
+.editor :global(.ProseMirror) {
+  color: #dcebd2;
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.editor :global(.ProseMirror) :is(h1, h2, h3) {
+  font-weight: 400;
+}
+
+.editor :global(.ProseMirror) a {
+  color: #8fe3b0;
+}

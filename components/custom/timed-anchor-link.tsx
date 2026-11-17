@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent, ReactNode, useCallback, useEffect, useRef } from "react";
+import { MouseEvent, ReactNode, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const PENDING_SCROLL_KEY = "cnu-pending-scroll";
@@ -13,6 +13,8 @@ interface TimedAnchorLinkProps {
   offset?: number;
   onNavigate?: () => void;
   targetId: string;
+  /** Write `#targetId` to the URL (default). Off keeps reloads from skipping the home entrance. */
+  updateHash?: boolean;
 }
 
 export function TimedAnchorLink({
@@ -23,6 +25,7 @@ export function TimedAnchorLink({
   offset,
   onNavigate,
   targetId,
+  updateHash = true,
 }: TimedAnchorLinkProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -41,7 +44,7 @@ export function TimedAnchorLink({
     [],
   );
 
-  const scrollToTarget = useCallback(() => {
+  const scrollToTarget = useCallback((writeHash = updateHash) => {
     const target = document.getElementById(targetId);
     if (!target) return false;
 
@@ -55,9 +58,9 @@ export function TimedAnchorLink({
     const targetY = target.getBoundingClientRect().top + startY - headerHeight;
     const distance = targetY - startY;
 
-    window.history.pushState(null, "", `#${targetId}`);
+    if (writeHash) window.history.pushState(null, "", `#${targetId}`);
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (duration <= 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       window.scrollTo({ top: targetY, behavior: "instant" });
       return true;
     }
@@ -80,19 +83,25 @@ export function TimedAnchorLink({
 
     animationFrame.current = requestAnimationFrame(animate);
     return true;
-  }, [duration, offset, targetId]);
+  }, [duration, offset, targetId, updateHash]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sessionStorage.getItem(PENDING_SCROLL_KEY) !== targetId) return;
 
-    const frame = requestAnimationFrame(() => {
+    const visitTarget = () => {
       if (scrollToTarget()) {
         sessionStorage.removeItem(PENDING_SCROLL_KEY);
       }
-    });
+    };
 
+    if (duration <= 0) {
+      // The first layout can precede styles and streamed content above the anchor.
+      scrollToTarget(false);
+    }
+
+    const frame = requestAnimationFrame(visitTarget);
     return () => cancelAnimationFrame(frame);
-  }, [pathname, scrollToTarget, targetId]);
+  }, [duration, pathname, scrollToTarget, targetId]);
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -105,8 +114,12 @@ export function TimedAnchorLink({
 
     if (href) {
       onNavigate?.();
+      if (duration <= 0 && href.endsWith(`#${targetId}`)) {
+        router.push(href, { scroll: false });
+        return;
+      }
       sessionStorage.setItem(PENDING_SCROLL_KEY, targetId);
-      router.push(href.split("#")[0] || "/");
+      router.push(href.split("#")[0] || "/", { scroll: duration > 0 });
     }
   };
 

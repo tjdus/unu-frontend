@@ -56,7 +56,7 @@ interface InfoRowProps {
 
 function InfoRow({ icon, label, value }: InfoRowProps) {
   return (
-    <div className="flex items-start gap-3 py-3">
+    <div className="flex items-start gap-3 border-b py-3">
       <div className="mt-0.5 text-muted-foreground">{icon}</div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-8 space-y-8">
       {/* Page Header */}
-      <div className="flex items-start gap-4 border-b pb-6">
+      <div className="flex items-start gap-4 border-b border-[var(--m3-outline)] pb-6">
         {mode !== "view" && (
           <Button
             variant="ghost"
@@ -236,7 +236,7 @@ export default function ProfilePage() {
             <Separator />
 
             {/* Info rows */}
-            <div className="divide-y">
+            <div className="grid gap-x-10 sm:grid-cols-2">
               <InfoRow
                 icon={<BookOpen className="h-4 w-4" />}
                 label="학번"
@@ -263,8 +263,6 @@ export default function ProfilePage() {
                 value={profile.joinedQuarter?.name}
               />
             </div>
-
-            <Separator className="mt-2" />
 
             {/* Actions */}
             <div className="flex gap-2 mt-5">
@@ -294,7 +292,7 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmitProfile(onSubmitProfile)}>
-              <div className="space-y-4">
+              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">이름</Label>
                   <Input
@@ -395,7 +393,7 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2 sm:col-span-2">
                   <Button type="submit" disabled={isSaving}>
                     {isSaving ? "저장 중..." : "저장"}
                   </Button>
@@ -419,7 +417,7 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmitPassword(onSubmitPassword)}>
-              <div className="space-y-4">
+              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="currentPassword">현재 비밀번호</Label>
                   <Input
@@ -452,7 +450,7 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2 sm:col-span-2">
                   <Button type="submit" disabled={isSaving}>
                     {isSaving ? "변경 중..." : "변경"}
                   </Button>

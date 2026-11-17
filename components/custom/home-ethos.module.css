@@ -1,0 +1,69 @@
+/* Rendered inside the deep-green home (colours come from home-deep.module.css vars). */
+.ethos {
+  display: grid;
+  gap: 56px;
+}
+
+.track {
+  position: relative;
+}
+
+/* Large screens: hold the section on screen while the wave plays. */
+.track[data-pin] .pin {
+  position: sticky;
+}
+
+.label {
+  font-family: var(--deep-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--deep-on-variant, #a8cbb2);
+  white-space: nowrap;
+}
+
+.statement {
+  font-size: clamp(72px, 9vw, 132px);
+  font-weight: 300;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.line {
+  display: block;
+  white-space: nowrap;
+}
+
+.char {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+
+[data-wave] .char,
+[data-wave] .note {
+  will-change: transform, opacity;
+}
+
+.notes {
+  display: grid;
+  gap: 36px;
+  padding: 0;
+  list-style: none;
+}
+
+.note {
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+@media (min-width: 900px) {
+  .ethos {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 600px);
+    align-items: end;
+  }
+
+  .note {
+    font-size: 22px;
+  }
+}

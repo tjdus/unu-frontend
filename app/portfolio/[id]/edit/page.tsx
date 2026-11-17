@@ -15,6 +15,8 @@ import { ContributorInfo } from "@/lib/interfaces/portfolio";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import editorialStyles from "@/components/custom/editorial.module.css";
+import editorStyles from "@/components/custom/editor-deep.module.css";
 
 export default function PortfolioEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -168,6 +170,7 @@ export default function PortfolioEditPage() {
   }
 
   return (
+    <main className={`${editorialStyles.page} ${editorStyles.editor}`}>
     <form
       onSubmit={handleSubmit}
       className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6"
@@ -218,7 +221,7 @@ export default function PortfolioEditPage() {
           autoResize(e.target);
         }}
         placeholder="프로젝트 이름"
-        className="w-full resize-none overflow-hidden bg-transparent border-none outline-none text-3xl sm:text-4xl font-bold placeholder:text-muted-foreground/30 leading-tight"
+        className="w-full resize-none overflow-hidden bg-transparent border-none outline-none text-4xl sm:text-6xl font-light tracking-tight placeholder:text-muted-foreground/30 leading-tight"
       />
 
       {/* Quarters + contributors */}
@@ -294,5 +297,6 @@ export default function PortfolioEditPage() {
         onImageUrlsChange={handleBodyImageUrlsChange}
       />
     </form>
+    </main>
   );
 }

@@ -1,0 +1,105 @@
+.list {
+  --step: 65ms;
+}
+
+.row {
+  position: relative;
+}
+
+.rule {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: .75px;
+  background: currentColor;
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.list[data-play] .row > details[open] + .rule {
+  animation: rule-draw 680ms cubic-bezier(0.45, 0, 0.35, 1) both;
+}
+
+/* Row content opens from its centre line and fades in. */
+.reveal {
+  opacity: .45;
+  clip-path: inset(0 12% 0 12%);
+}
+
+.list[data-play] .reveal {
+  animation: row-spread 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--d, 0) * var(--step) + 60ms);
+}
+
+.answerMotion {
+  display: none;
+}
+
+@media (min-width: 812px) and (prefers-reduced-motion: no-preference) {
+  .answerText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .answerMotion {
+    display: inline;
+  }
+
+  .answerWord {
+    display: inline-block;
+    max-width: 100%;
+    clip-path: inset(0 -0.4em);
+  }
+
+  .answerLetter {
+    display: inline-block;
+  }
+
+  .list[data-play] .row > details[open] .answerLetter {
+    animation: answer-letter-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* Sample Lusion's 1 - 2^(-10t) curve at even time intervals. */
+    animation-timing-function: linear(
+      0, 0.29289, 0.5, 0.64645, 0.75, 0.82322, 0.875, 0.91161, 0.9375,
+      0.95581, 0.96875, 0.9779, 0.98438, 0.98895, 0.99219, 0.99448,
+      0.99609, 0.99724, 0.99805, 0.99862, 1
+    );
+    animation-delay: var(--letter-delay);
+  }
+}
+
+@keyframes answer-letter-rise {
+  from { transform: translate3d(0, 100%, 0) rotate(30deg); }
+  to { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
+@keyframes rule-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes row-spread {
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list[data-play] .row > details[open] + .rule {
+    animation: none;
+    transform: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    clip-path: none;
+    animation: none !important;
+  }
+}

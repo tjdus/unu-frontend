@@ -1,0 +1,59 @@
+.divider {
+  position: relative;
+  padding-top: 32px;
+}
+
+.divider::before {
+  position: absolute;
+  inset: auto 0 3.5px;
+  height: 1px;
+  background: var(--divider-line, #c8dcd0);
+  content: "";
+}
+
+.markers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: calc(100% - var(--divider-inset, 40px));
+  max-width: var(--divider-max, 1155px);
+  height: 8px;
+  margin-inline: auto;
+}
+
+.left {
+  transform: translateX(calc((100% - 12px) * (1 - var(--divider-progress, 1))));
+}
+
+.right {
+  transform: translateX(calc((12px - 100%) * (1 - var(--divider-progress, 1))));
+}
+
+.left::before,
+.right::before {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--divider-mark, #40795b);
+  content: "";
+}
+
+.left::before { left: 0; }
+.right::before { right: 0; }
+
+@media (min-width: 640px) {
+  .divider {
+    padding-top: 48px;
+  }
+
+  .markers {
+    width: calc(100% - var(--divider-inset-sm, 64px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .left,
+  .right {
+    transform: translateX(0);
+  }
+}

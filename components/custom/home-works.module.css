@@ -1,0 +1,170 @@
+/* Rendered inside the deep-green home (colours come from home-deep.module.css vars). */
+.grid {
+  display: grid;
+  gap: 40px;
+}
+
+.aside {
+  display: none;
+}
+
+.label {
+  font-family: var(--deep-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--deep-on-variant, #a8cbb2);
+}
+
+.nav {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.navItem {
+  cursor: pointer;
+  font-size: clamp(44px, 5.5vw, 88px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--deep-on, #dcebd2) 28%, transparent);
+  transition: color 300ms ease;
+}
+
+.navItem:hover,
+.navActive {
+  color: var(--deep-on, #dcebd2);
+}
+
+.cards {
+  display: grid;
+  gap: 72px;
+}
+
+.photo {
+  display: block;
+}
+
+.frame {
+  position: relative;
+  display: grid;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--deep-on, #dcebd2) 18%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--deep-on, #dcebd2) 5%, transparent);
+}
+
+/* Taller than the frame so it can drift without showing edges. */
+.parallax {
+  position: absolute;
+  inset: -10% 0;
+  will-change: transform;
+}
+
+.image {
+  object-fit: cover;
+  transition: scale 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.photo:hover .image {
+  scale: 1.03;
+}
+
+.blogThumbnail {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: var(--deep-on, #dcebd2);
+}
+
+.blogThumbnail::after {
+  display: none;
+}
+
+.placeholder {
+  font-family: var(--deep-mono, monospace);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--deep-on, #dcebd2) 45%, transparent);
+}
+
+.meta {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cardTitle {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.description {
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--deep-on-variant, #a8cbb2);
+  word-break: keep-all;
+}
+
+.more {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-family: var(--deep-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--deep-on, #dcebd2);
+  transition: color 200ms ease;
+}
+
+.more:hover {
+  color: var(--deep-accent, #8fe3b0);
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
+    gap: 48px;
+  }
+
+  .aside {
+    display: block;
+  }
+
+  .sticky {
+    position: sticky;
+    top: 96px;
+  }
+
+  .cards {
+    gap: 120px;
+  }
+
+  /* On large screens the sticky list carries the titles. */
+  .cardTitle {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem,
+  .image {
+    transition: none;
+  }
+
+  .photo:hover .image {
+    scale: 1;
+  }
+}

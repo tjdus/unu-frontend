@@ -1,0 +1,463 @@
+/* Home · Deep Green (Figma: "Home · Deep Green (3200K-style, M3)")
+ * Colours mirror the "Deep" mode of the CNU · M3 Theme variables. */
+.page {
+  --deep-bg: #10603f;
+  --deep-on: #dcebd2;
+  --deep-on-variant: #a8cbb2;
+  --deep-outline: #7fb394;
+  --deep-outline-variant: #2b8a5e;
+  --deep-accent: #8fe3b0;
+  --deep-inverse: #dcebd2;
+  --deep-inverse-on: #10603f;
+  --deep-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --deep-gutter: 20px;
+
+  /* HomeScrollDivider theming */
+  --divider-line: color-mix(in srgb, var(--deep-outline) 45%, transparent);
+  --divider-mark: var(--deep-accent);
+  --divider-max: 1360px;
+  --divider-inset: 40px;
+  --divider-inset-sm: 80px;
+
+  background: var(--deep-bg);
+  color: var(--deep-on);
+}
+
+@media (min-width: 640px) {
+  .page {
+    --deep-gutter: 40px;
+  }
+}
+
+.label {
+  font-family: var(--deep-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--deep-on-variant);
+  white-space: nowrap;
+}
+
+.container {
+  width: 100%;
+  max-width: calc(1360px + var(--deep-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--deep-gutter);
+}
+
+.section {
+  padding-block: 96px 120px;
+}
+
+.display {
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.sectionTitle {
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: clamp(64px, 9vw, 120px);
+}
+
+.dashed {
+  border-bottom: 1px dashed var(--deep-outline);
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--deep-bg);
+  user-select: none;
+}
+
+.heroInner {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  padding: 24px var(--deep-gutter) 40px;
+  pointer-events: none;
+}
+
+.heroInner a {
+  pointer-events: auto;
+}
+
+.heroNav {
+  display: flex;
+  padding-right: 72px;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.heroNav a {
+  transition: color 200ms ease;
+}
+
+.heroNav a:hover {
+  color: var(--deep-accent);
+}
+
+.stats {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 0;
+  margin-top: 48px;
+}
+
+.stat {
+  position: relative;
+  padding-left: 12px;
+}
+
+.stat::before {
+  position: absolute;
+  top: 4px;
+  bottom: 2px;
+  left: 0;
+  width: 2px;
+  background: var(--deep-accent);
+  content: "";
+}
+
+.statValue,
+.statLabel {
+  width: fit-content;
+}
+
+.statValue {
+  font-size: 36px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.statLabel {
+  margin-top: 8px;
+  font-family: var(--deep-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--deep-on-variant);
+}
+
+.ruler {
+  display: none;
+}
+
+.heroBottom {
+  margin-top: auto;
+}
+
+.heroTitle {
+  font-size: clamp(112px, 30vw, 330px);
+  font-weight: 500;
+  line-height: 0.8;
+  letter-spacing: 0;
+}
+
+.heroTitle h1 {
+  position: relative;
+  width: fit-content;
+}
+
+/* Same type and baseline as the hero nav ("About Us …"). */
+.heroLogin {
+  position: absolute;
+  top: 24px;
+  right: var(--deep-gutter);
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  transition: color 200ms ease;
+}
+
+.heroLogin:hover {
+  color: var(--deep-accent);
+}
+
+.heroAside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.applyLink {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 18px 16px;
+  border: 1px solid var(--deep-on);
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.applyLink:hover {
+  background: var(--deep-on);
+  color: var(--deep-bg);
+}
+
+.heroSubtitle {
+  max-width: 22em;
+  font-size: clamp(17px, 1.95vw, 28px);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 900px) {
+  .heroInner {
+    padding-top: 16px;
+  }
+
+  .heroLogin {
+    top: 16px;
+    font-size: clamp(28px, 2.8vw, 40px);
+  }
+
+  .heroNav {
+    padding-right: 0;
+    position: absolute;
+    top: 16px;
+    left: 69%;
+    flex-direction: column;
+    gap: 0;
+    font-size: clamp(28px, 2.8vw, 40px);
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin-top: clamp(170px, 26vh, 232px);
+  }
+
+  .stat {
+    padding-left: 0;
+    padding-bottom: 60px;
+  }
+
+  .stat::before {
+    top: auto;
+    bottom: 0;
+    height: 34px;
+  }
+
+  .statValue {
+    font-size: 44px;
+  }
+
+  /* Kelvin-style scale: minor tick every 17px, major every 170px. */
+  .ruler {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    height: 24px;
+    border-bottom: 1px solid var(--deep-outline);
+    background:
+      repeating-linear-gradient(to right, var(--deep-outline) 0 1px, transparent 1px 170px) bottom left / 100% 24px no-repeat,
+      repeating-linear-gradient(to right, var(--deep-outline) 0 1px, transparent 1px 17px) bottom left / 100% 14px no-repeat;
+    pointer-events: none;
+  }
+
+  /* Hover bars rise from the ruler line; sits above it without changing its box. */
+  .rulerHover {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 72px;
+    pointer-events: none;
+  }
+
+  .heroBottom {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .heroAside {
+    margin: 0 0 1.2em;
+  }
+}
+
+/* ── Recruit ───────────────────────────────────────────────────────── */
+.recruit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 64px 24px 72px;
+  text-align: center;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 6px 16px;
+  border: 1px solid var(--deep-outline);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.recruitTitle {
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: clamp(64px, 10vw, 150px);
+  line-height: 0.84;
+  letter-spacing: 0.05em;
+  margin-right: -0.05em;
+}
+
+.recruitText {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--deep-on-variant);
+  word-break: keep-all;
+}
+
+.filledButton,
+.disabledButton {
+  display: inline-flex;
+  height: 56px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 24px 28px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.filledButton {
+  background: var(--deep-on);
+  color: var(--deep-bg);
+  transition: background-color 200ms ease;
+}
+
+.filledButton:hover {
+  background: var(--deep-accent);
+}
+
+.disabledButton {
+  border: 1px solid color-mix(in srgb, var(--deep-on) 25%, transparent);
+  color: color-mix(in srgb, var(--deep-on) 50%, transparent);
+  cursor: not-allowed;
+}
+
+/* ── Contact ───────────────────────────────────────────────────────── */
+/* Heading + details on the left; the right side is filled by the map. */
+.contactLayout {
+  display: grid;
+  gap: 40px;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.contactTitle {
+  margin-bottom: 20px;
+  font-size: clamp(56px, 7vw, 104px);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.contactEmail {
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  transition: color 200ms ease;
+}
+
+.contactEmail:hover {
+  color: var(--deep-accent);
+}
+
+.contactText {
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--deep-on-variant);
+  word-break: keep-all;
+}
+
+.outlinedButton {
+  display: inline-flex;
+  width: fit-content;
+  height: 48px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-inline: 20px 24px;
+  border: 1px solid var(--deep-on);
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.outlinedButton:hover {
+  background: var(--deep-on);
+  color: var(--deep-bg);
+}
+
+.map {
+  position: relative;
+  aspect-ratio: 620 / 476;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+@media (min-width: 1100px) {
+  .contactLayout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: stretch;
+    gap: 48px;
+  }
+
+  /* Map fills the whole right column, as tall as the details beside it. */
+  .map {
+    aspect-ratio: auto;
+    min-height: 480px;
+  }
+
+  .contactText {
+    font-size: 18px;
+  }
+}

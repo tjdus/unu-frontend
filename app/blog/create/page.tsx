@@ -24,6 +24,8 @@ import { uploadImage, deleteImage } from "@/lib/api/image";
 import { BlogRequest, BlogCategory } from "@/lib/interfaces/blog";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import editorialStyles from "@/components/custom/editorial.module.css";
+import editorStyles from "@/components/custom/editor-deep.module.css";
 
 const CATEGORIES: { value: BlogCategory; label: string }[] = [
   { value: "tech", label: "Tech" },
@@ -126,6 +128,7 @@ export default function BlogCreatePage() {
   if (authLoading || !canWrite) return null;
 
   return (
+    <main className={`${editorialStyles.page} ${editorStyles.editor}`}>
     <form
       onSubmit={handleSubmit}
       className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6"
@@ -198,7 +201,7 @@ export default function BlogCreatePage() {
             autoResize(e.target);
           }}
           placeholder="제목"
-          className="w-full resize-none overflow-hidden bg-transparent border-none outline-none text-3xl sm:text-4xl font-bold placeholder:text-muted-foreground/30 leading-tight"
+          className="w-full resize-none overflow-hidden bg-transparent border-none outline-none text-4xl sm:text-6xl font-light tracking-tight placeholder:text-muted-foreground/30 leading-tight"
         />
 
         {/* Subtitle */}
@@ -240,5 +243,6 @@ export default function BlogCreatePage() {
         />
       </div>
     </form>
+    </main>
   );
 }

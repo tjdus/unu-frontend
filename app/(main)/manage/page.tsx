@@ -384,7 +384,7 @@ function CalendarView({
   for (let day = 1; day <= daysInMonth; day++) {
     calendarDays.push(day);
   }
-  while (calendarDays.length < 42) calendarDays.push(null);
+  while (calendarDays.length % 7 !== 0) calendarDays.push(null);
 
   // Group sessions by date
   const sessionsByDate = new Map<string, EnrichedSession[]>();
@@ -409,10 +409,10 @@ function CalendarView({
   };
 
   return (
-    <Card>
-      <CardContent className="p-6">
+    <Card className="py-0">
+      <CardContent className="p-3 sm:p-4">
         {/* Weekday Headers */}
-        <div className="grid grid-cols-7 gap-2 mb-4">
+        <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-2">
           {["일", "월", "화", "수", "목", "금", "토"].map((day, idx) => (
             <div
               key={day}
@@ -428,10 +428,10 @@ function CalendarView({
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid auto-rows-fr grid-cols-7 gap-1 sm:gap-2">
           {calendarDays.map((day, idx) => {
             if (day === null) {
-              return <div key={`empty-${idx}`} className="aspect-[4/5]" />;
+              return <div key={`empty-${idx}`} aria-hidden="true" />;
             }
 
             const dateString = formatDate(day);
@@ -444,7 +444,7 @@ function CalendarView({
               <div
                 key={day}
                 className={cn(
-                  "aspect-[4/5] border rounded-lg p-2 relative",
+                  "relative min-h-24 min-w-0 rounded-lg border p-1 sm:min-h-26 sm:p-2",
                   isToday(day) && "bg-primary/5 border-primary font-semibold",
                   isSelectedDate && "ring-2 ring-primary",
                   daySessions.length > 0 && "hover:bg-muted/50 cursor-pointer",
@@ -484,8 +484,8 @@ function CalendarView({
                   {daySessions.length > 2 && (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="text-xs text-muted-foreground hover:text-foreground text-center w-full px-1 py-0.5 rounded border border-dashed hover:border-solid hover:bg-muted/50 transition-colors cursor-pointer">
-                          +{daySessions.length - 2}개 더보기
+                        <button className="w-full truncate rounded border border-dashed px-0.5 py-0.5 text-center text-xs text-muted-foreground transition-colors hover:border-solid hover:bg-muted/50 hover:text-foreground sm:px-1">
+                          +{daySessions.length - 2}<span className="sr-only sm:not-sr-only">개 더보기</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-80" align="start">
