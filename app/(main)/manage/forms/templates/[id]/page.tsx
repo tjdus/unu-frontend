@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FormPreview } from "@/components/custom/form/form-preview";
-import { parseSchema } from "@/lib/interfaces/form-builder";
+import { parseSchema, schemaToString } from "@/lib/interfaces/form-builder";
 import {} from "@/components/ui/alert-dialog";
 import { DeleteConfirmDialog } from "@/components/custom/common/delete-confirm-dialog";
 import {
@@ -75,7 +75,7 @@ export default function ViewFormTemplatePage() {
   async function handleDelete() {
     try {
       await deleteFormTemplate(id);
-      router.push("/manage/forms/templates");
+      router.replace("/manage/forms");
     } catch (error: any) {
       console.error("Failed to delete template:", error);
       setDeleteDialogOpen(false);
@@ -206,31 +206,31 @@ export default function ViewFormTemplatePage() {
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">스키마 (JSON)</h3>
               <ScrollArea className="h-150 w-full rounded-md border bg-muted/50">
-                <pre className="p-4 text-sm font-mono">{template.schema}</pre>
+                <pre className="p-4 text-sm font-mono">{schemaToString(template.schema)}</pre>
               </ScrollArea>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Create Form Action */}
+      {/* Create a recruitment with these questions */}
       <Card className="border-slate-200 bg-slate-50">
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-sm mb-1">
-                이 템플릿으로 신청서 만들기
+                이 템플릿으로 모집 만들기
               </h3>
               <p className="text-xs text-muted-foreground">
-                현재 템플릿을 기반으로 새로운 신청서를 생성할 수 있습니다
+                이 템플릿의 질문을 불러온 상태로 새 모집 공고를 만듭니다
               </p>
             </div>
             <Button
               size="sm"
-              onClick={() => router.push(`/manage/forms/new?templateId=${id}`)}
+              onClick={() => router.push(`/manage/recruitments/new?templateId=${id}`)}
             >
               <File className="mr-2 h-4 w-4" />
-              <span className="text-xs">신청서 생성</span>
+              <span className="text-xs">모집 만들기</span>
             </Button>
           </div>
         </CardContent>

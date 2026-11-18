@@ -9,29 +9,35 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createRecruitment, updateRecruitment } from "@/lib/api/recruitment";
-import { getAllForms, getFormById } from "@/lib/api/form";
+import {
+  createRecruitment,
+  getAllRecruitments,
+  updateRecruitment,
+} from "@/lib/api/recruitment";
+import { getAllFormTemplates } from "@/lib/api/form-template";
 import { getAllQuarters } from "@/lib/api/quarter";
-import { FormResponse } from "@/lib/interfaces/form";
+import { FormTemplateResponse } from "@/lib/interfaces/form";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import {
   RecruitmentResponse,
   RecruitmentType,
 } from "@/lib/interfaces/recruitment";
 import {
-  FormSchema,
   parseSchema,
-  QUESTION_TYPE_LABELS,
+  schemaToString,
+  serializeSchema,
 } from "@/lib/interfaces/form-builder";
+import { FormBuilder } from "@/components/custom/form/form-builder";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 interface RecruitmentFormProps {
@@ -60,53 +66,50 @@ export default function RecruitmentForm({
     initialData?.endAt ? initialData.endAt : "",
   );
   const [quarterId, setQuarterId] = useState(initialData?.quarter.id || "");
-  const [formId, setFormId] = useState(initialData?.form.id || "");
   const [active, setActive] = useState(initialData?.active ?? true);
   const [type, setType] = useState<RecruitmentType>(
     initialData?.type || "NEW_MEMBER",
   );
 
   // Data loading
-  const [forms, setForms] = useState<FormResponse[]>([]);
   const [quarters, setQuarters] = useState<QuarterResponse[]>([]);
-  const [formsLoading, setFormsLoading] = useState(true);
   const [quartersLoading, setQuartersLoading] = useState(true);
 
-  // Form preview
-  const [selectedForm, setSelectedForm] = useState<FormResponse | null>(
-    initialData?.form || null,
+  // Questions: owned by the recruitment. `loadedQuestions` seeds the builder (initial value or
+  // a copy loaded from a template / past recruitment); `questionsJson` is what the builder holds.
+  const [loadedQuestions, setLoadedQuestions] = useState(() =>
+    initialData
+      ? schemaToString(initialData.questions)
+      : serializeSchema({ version: 1, questions: [] }),
   );
-  const [formSchema, setFormSchema] = useState<FormSchema | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
+  const [questionsJson, setQuestionsJson] = useState(loadedQuestions);
+  const [templates, setTemplates] = useState<FormTemplateResponse[]>([]);
+  const [pastRecruitments, setPastRecruitments] = useState<RecruitmentResponse[]>([]);
+  const [sourceKey, setSourceKey] = useState("");
 
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadForms();
     loadQuarters();
-  }, []);
-
-  useEffect(() => {
-    // Load initial form preview if in edit mode
-    if (mode === "edit" && initialData?.form) {
-      const schema = parseSchema(initialData.form.schema);
-      setFormSchema(schema);
-    }
-  }, [mode, initialData]);
-
-  async function loadForms() {
-    try {
-      setFormsLoading(true);
-      const data = await getAllForms();
-      setForms(data);
-    } catch (error: any) {
-      console.error("Failed to load forms:", error);
-    } finally {
-      setFormsLoading(false);
-    }
-  }
+    // Sources for "불러오기"; failures only leave the menu shorter.
+    getAllFormTemplates()
+      .then((list) => {
+        setTemplates(list);
+        // "이 템플릿으로 모집 만들기" opens /manage/recruitments/new?templateId=…
+        const templateId = new URLSearchParams(window.location.search).get("templateId");
+        const template = mode === "create" && list.find((item) => item.id === templateId);
+        if (template) {
+          setLoadedQuestions(schemaToString(template.schema));
+          setSourceKey(`template:${template.id}`);
+        }
+      })
+      .catch(() => undefined);
+    getAllRecruitments()
+      .then((list) => setPastRecruitments(list.filter((item) => item.id !== initialData?.id)))
+      .catch(() => undefined);
+  }, [initialData?.id, mode]);
 
   async function loadQuarters() {
     try {
@@ -120,33 +123,41 @@ export default function RecruitmentForm({
     }
   }
 
-  async function handleFormSelect(selectedFormId: string) {
-    setFormId(selectedFormId);
-    if (!selectedFormId) {
-      setSelectedForm(null);
-      setFormSchema(null);
-      return;
-    }
-
-    try {
-      setFormLoading(true);
-      const form = await getFormById(selectedFormId);
-      setSelectedForm(form);
-      const schema = parseSchema(form.schema);
-      setFormSchema(schema);
-    } catch (error: any) {
-      console.error("Failed to load form:", error);
-      setFormSchema(null);
-    } finally {
-      setFormLoading(false);
-    }
+  function handleLoadQuestions(key: string) {
+    const [kind, id] = key.split(":");
+    const source =
+      kind === "template"
+        ? templates.find((template) => template.id === id)?.schema
+        : pastRecruitments.find((recruitment) => recruitment.id === id)?.questions;
+    if (!source) return;
+    const hasQuestions = parseSchema(questionsJson).questions.length > 0;
+    if (hasQuestions && !window.confirm("지금 작성한 질문을 불러온 질문으로 바꿀까요?")) return;
+    // A copy: later edits here don't touch the template or the other recruitment.
+    setLoadedQuestions(schemaToString(source));
+    setSourceKey(key);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!title.trim() || !formId || !quarterId || !startAt || !endAt) {
+    if (!title.trim() || !quarterId || !startAt || !endAt) {
       setError("필수 항목을 모두 입력해주세요.");
+      return;
+    }
+
+    const questions = parseSchema(questionsJson);
+    if (questions.questions.some((question) => !question.title.trim())) {
+      setError("질문 제목을 모두 입력해주세요.");
+      return;
+    }
+    if (
+      questions.questions.some(
+        (question) =>
+          (question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE") &&
+          !question.options?.some((option) => option.trim()),
+      )
+    ) {
+      setError("선택형 질문에는 보기를 1개 이상 입력해주세요.");
       return;
     }
 
@@ -165,7 +176,7 @@ export default function RecruitmentForm({
         startAt: startAt,
         endAt: endAt,
         quarterId: quarterId,
-        formId: formId,
+        questions,
         active,
         type,
       };
@@ -255,7 +266,9 @@ export default function RecruitmentForm({
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={6}
-                    className="absolute left-0 top-0 z-30 min-h-36 w-full resize-none bg-background text-sm leading-relaxed shadow-none transition-[width,min-height,box-shadow,transform] duration-200 focus:min-h-64 focus:shadow-[0_18px_45px_rgb(15_23_42_/_0.18)] lg:focus:min-h-96 lg:focus:w-[calc(200%+1.5rem)] lg:focus:-translate-x-8"
+                    // Opaque and elevated while expanded: the app's M3 field styles make inputs
+                    // transparent and shadowless, which let the fields underneath show through.
+                    className="absolute left-0 top-0 z-30 min-h-36 w-full resize-none bg-background! text-sm leading-relaxed transition-[width,min-height,box-shadow,transform] duration-200 focus:min-h-64 focus:shadow-[0_18px_45px_rgb(15_23_42_/_0.18)]! focus-visible:ring-0 focus-visible:ring-offset-0 lg:focus:min-h-96 lg:focus:w-[calc(200%+1.5rem)] lg:focus:-translate-x-8"
                   />
                 </div>
               </div>
@@ -335,37 +348,6 @@ export default function RecruitmentForm({
 
               <Separator />
 
-              {/* Form Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="form">
-                  사용 {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"}
-                  양식 선택{" "}
-                  <span className="text-destructive">*</span>
-                </Label>
-                {formsLoading ? (
-                  <Skeleton className="h-10 w-full" />
-                ) : (
-                  <Select value={formId} onValueChange={handleFormSelect}>
-                    <SelectTrigger id="form">
-                      <SelectValue
-                        placeholder={`${type === "INTERNAL_OPERATION" ? "신청서" : "지원서"} 양식을 선택하세요`}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {forms.map((form) => (
-                        <SelectItem key={form.id} value={form.id}>
-                          {form.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  선택한 {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"}
-                  양식의 질문 목록이 오른쪽에 표시됩니다.
-                </p>
-              </div>
-
               {/* Active Toggle */}
               <div className="flex items-center gap-2 pt-2">
                 <Switch
@@ -381,115 +363,52 @@ export default function RecruitmentForm({
           </Card>
         </div>
 
-        {/* Right: Form Preview */}
+        {/* Right: Questions (owned by this recruitment) */}
         <div className="lg:sticky lg:top-8 lg:self-start">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
               <CardTitle>
-                {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"} 미리보기
+                {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"} 질문
               </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!formId ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p className="text-sm">
-                    왼쪽에서 {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"}
-                    양식을 선택하면 질문 목록이 표시됩니다.
-                  </p>
-                </div>
-              ) : formLoading ? (
-                <div className="space-y-4">
-                  <div className="pb-3 border-b space-y-1.5">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="border rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <Skeleton className="h-5 w-5 shrink-0 rounded-sm" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-full" />
-                            <div className="flex gap-1.5">
-                              <Skeleton className="h-4 w-16" />
-                              <Skeleton className="h-4 w-10" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : selectedForm && formSchema ? (
-                <div className="space-y-4">
-                  {/* Form Title */}
-                  <div className="pb-3 border-b">
-                    <h3 className="font-semibold text-lg">
-                      {selectedForm.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formSchema.questions.length}개 질문
-                    </p>
-                  </div>
-
-                  {/* Questions List */}
-                  {formSchema.questions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="text-sm">질문이 없습니다</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {formSchema.questions.map((question, index) => (
-                        <div
-                          key={question.id}
-                          className="border rounded-lg p-3 bg-muted/30"
-                        >
-                          <div className="flex items-start gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="shrink-0 text-xs"
-                            >
-                              {index + 1}
-                            </Badge>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm whitespace-pre-wrap wrap-break-word">
-                                {question.title || "(제목 없음)"}
-                              </p>
-                              <div className="flex flex-wrap gap-1.5 mt-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {QUESTION_TYPE_LABELS[question.type]}
-                                </Badge>
-                                {question.required && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="text-xs"
-                                  >
-                                    필수
-                                  </Badge>
-                                )}
-                              </div>
-                              {question.options &&
-                                question.options.length > 0 && (
-                                  <div className="mt-2 text-xs text-muted-foreground">
-                                    <span className="font-medium">선택지:</span>{" "}
-                                    {question.options.join(", ")}
-                                  </div>
-                                )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              <Select value={sourceKey} onValueChange={handleLoadQuestions}>
+                <SelectTrigger className="h-9 w-auto min-w-40" aria-label="질문 불러오기">
+                  <SelectValue placeholder="불러오기" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {templates.length === 0 && pastRecruitments.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      불러올 질문이 없습니다
+                    </SelectItem>
                   )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-destructive">
-                  <p className="text-sm">
-                    {type === "INTERNAL_OPERATION" ? "신청서" : "지원서"}
-                    양식을 불러오는데 실패했습니다.
-                  </p>
-                </div>
-              )}
+                  {templates.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>템플릿</SelectLabel>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={`template:${template.id}`}>
+                          {template.title}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {pastRecruitments.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>지난 모집</SelectLabel>
+                      {pastRecruitments.map((recruitment) => (
+                        <SelectItem key={recruitment.id} value={`recruitment:${recruitment.id}`}>
+                          {recruitment.title}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                템플릿이나 지난 모집에서 질문을 복사해 올 수 있습니다. 복사한 뒤에 고쳐도
+                원본에는 영향이 없습니다.
+              </p>
+              <FormBuilder initialSchema={loadedQuestions} onChange={setQuestionsJson} layout="stacked" />
             </CardContent>
           </Card>
         </div>

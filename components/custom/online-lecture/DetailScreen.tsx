@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import type { Lecture, ReservationCartItem, ReservationGroup } from "@/lib/online-lecture/types";
-import { TIME_SLOTS, dateLabel, durationLabel, minutesOf, shortDateLabel, timeRangeLabel, todayStr } from "@/lib/online-lecture/date";
+import { TIME_SLOTS, dateLabel, durationLabel, minutesOf, shortDateLabel, timeRangeLabel, todayStr, weekStartStr } from "@/lib/online-lecture/date";
 import Calendar from "./Calendar";
+import styles from "./booking.module.css";
 
 interface Props {
   lecture: Lecture;
@@ -97,173 +99,85 @@ export default function DetailScreen({
     onSubmitCart();
   };
 
+  const remaining = weeklyRemaining.find((week) => week.weekStart === weekStartStr(selectedDate));
+
   return (
-    <main className="relative mx-auto max-w-[900px] px-5 pt-7 pb-20 sm:px-7">
-      <div className="hidden 2xl:block 2xl:h-0 2xl:w-0 2xl:z-10">
-        <div className="absolute top-[247px] right-[calc(50%+450px)] w-[260px] max-h-[calc(100vh-170px)] overflow-y-auto rounded-[18px] border border-line bg-white p-5">
-          {/* <h2 className="mb-3 text-sm font-bold tracking-[-0.3px]">{lecture.name} · 주차별 남은 시간</h2>
-          <div className="mb-4 flex flex-col gap-1.5 border-b border-line-divider pb-4">
-            {weeklyRemaining.map((w) => (
-              <div key={w.weekStart} className="flex flex-col gap-0.5 text-[12.5px] font-semibold">
-                <span className="text-faint">{w.label}</span>
-                <span className={w.remaining > 0 ? "text-brand-dark" : "text-disabled"}>
-                  {w.remaining > 0 ? `${durationLabel(w.remaining)} 남음` : "다 채웠어요"}
-                </span>
-              </div>
-            ))}
-          </div> */}
-
-          <h2 className="mb-3 text-sm font-bold tracking-[-0.3px]">전체 예약 현황</h2>
-          {windowReservations.length === 0 ? (
-            <p className="text-[12.5px] text-faint">예약 가능 기간 내 예약이 없어요.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {windowReservations.map((g) => (
-                <div key={g.key} className="border-t border-line-divider pt-3 first:border-t-0 first:pt-0">
-                  <div className="text-[11px] font-semibold text-faint">{shortDateLabel(g.res_date)}</div>
-                  <div className="truncate text-[13px] font-bold text-ink">{g.lecture}</div>
-                  <div className="text-[11.5px] font-bold text-brand-dark">
-                    {timeRangeLabel(g.times)} · {durationLabel(g.times.length)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <button
-        onClick={onBack}
-        className="mb-2 inline-flex cursor-pointer items-center gap-1.5 py-2 text-[13.5px] font-semibold text-hint hover:text-ink-2"
-      >
-        ← 강의 목록으로
+    <div>
+      <button type="button" onClick={onBack} className={styles.back}>
+        <ArrowLeft size={16} /> 강의 목록으로
       </button>
-
-        {/* 강의 헤더 */}
-        <section className="mb-[22px] rounded-[18px] border border-line bg-white px-[30px] py-7">
-          <div className="mb-3 flex items-center gap-[9px]">
-            <span className="inline-flex items-center gap-[5px] rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-deep">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#22a75a]" />
-              예약 가능
-            </span>
-            {lecture.category && (
-              <span className="rounded-md bg-line-soft px-2 py-0.5 text-[11.5px] font-bold text-ink-3">{lecture.category}</span>
-            )}
-            {lecture.level && (
-              <span className="rounded-md bg-line-soft px-2 py-0.5 text-[11.5px] font-bold text-ink-3">
-                {lecture.level}
-              </span>
-            )}
-          </div>
-          <h1 className="mb-2.5 text-[26px] font-extrabold tracking-[-0.7px]">{lecture.name}</h1>
-          {lecture.description && (
-            <p className="max-w-[680px] text-[14.5px] leading-relaxed text-ink-3">
-              {lecture.description}
+      <header className={styles.heading}>
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <h1 className="min-w-0 flex-1 basis-[16rem]">{lecture.name}</h1>
+          {remaining && (
+            <p className="pt-1">
+              선택한 주 남은 시간 <strong className="ml-1 font-semibold text-brand-dark">{durationLabel(remaining.remaining)}</strong>
             </p>
           )}
-        </section>
+        </div>
+        {(lecture.category || lecture.level) && <p>{[lecture.category, lecture.level].filter(Boolean).join(" · ")}</p>}
+        {lecture.description && <p className="max-w-[680px] whitespace-pre-line">{lecture.description}</p>}
+      </header>
 
-        {/* 날짜 */}
-        <section className="mb-[22px]">
-          <Calendar selected={selectedDate} onSelect={onSelectDate} />
-        </section>
+      <ul className={styles.rules}>
+        <li>30분 단위</li>
+        <li>강의당 주 최대 4시간</li>
+        <li>연속 최대 2시간</li>
+        <li>오늘부터 3주 이내</li>
+      </ul>
 
-        {/* 시간대 */}
-        <section className="rounded-[18px] border border-line bg-white px-7 py-[26px]">
-          <div className="mb-[14px] flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[15px] font-bold tracking-[-0.3px]">
-              시간대 선택{" "}
-              <span className="font-semibold text-faint">· {dateLabel(selectedDate)}</span>
-            </h2>
+      <div className={styles.schedule}>
+        <Calendar selected={selectedDate} onSelect={onSelectDate} />
+        <section className="min-w-0" aria-labelledby="lecture-time-heading">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 id="lecture-time-heading" className={styles.sectionTitle}>시간대 선택</h2>
+            <span className={styles.small}>{dateLabel(selectedDate)}</span>
           </div>
-
-          <div className="mb-[16px] flex flex-wrap gap-x-4 gap-y-1.5 border-b border-line-divider pb-3 text-[12px] font-semibold text-hint">
-            <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-              <span>오늘부터 3주 이내 날짜만 예약할 수 있어요.</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-              <span>강의별 일주일 최대 4시간까지 예약할 수 있습니다.</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-              <span>연속 예약은 최대 2시간까지 가능합니다.</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(82px,1fr))] gap-2.5">
+          <div className={styles.timeGrid}>
             {TIME_SLOTS.map((time) => {
               const mine = myTimes.includes(time);
               const taken = reservedTimes.includes(time) && !mine;
               const otherBusy = otherLectureBusyTimes.includes(time);
               const past = isToday && minutesOf(time) <= currentMinutes;
               const wanted = desiredTimes.includes(time);
-              const conflictingSelection = otherBusy && wanted && !mine;
-
+              const conflict = otherBusy && wanted && !mine;
               const disabled = taken || (otherBusy && !wanted) || past;
-
-              let cls: string;
-              let seatCls: string;
-              let seatText: string;
-
-   
-              if (past && mine) {
-                cls = "bg-brand-soft border-brand-line text-brand cursor-not-allowed opacity-60";
-                seatCls = "text-brand";
-                seatText = "내 지난 예약";
-              } else if (past) {
-                cls = "bg-surface-sunken border-line-soft text-disabled-2 cursor-not-allowed";
-                seatCls = "text-disabled-2";
-                seatText = "지난 시간";
-              } else if (taken) {
-                cls = "bg-surface-sunken border-line-soft text-[#8b93a3] cursor-not-allowed";
-                seatCls = "text-disabled";
-                seatText = "예약됨";
-              } else if (conflictingSelection) {
-                cls = "bg-danger-soft border-danger-line text-danger cursor-pointer";
-                seatCls = "text-danger";
-                seatText = "시간 중복";
-              } else if (otherBusy) {
-                cls = "bg-surface-sunken border-line-soft text-[#8b93a3] cursor-not-allowed";
-                seatCls = "text-disabled";
-                seatText = "다른 강의 예약";
-              } else if (mine && !wanted) {
-                cls = "bg-danger-soft border-danger-line text-danger cursor-pointer";
-                seatCls = "text-danger";
-                seatText = "취소 예정";
-              } else if (mine) {
-                cls = "bg-brand-soft border-brand-line text-brand cursor-pointer hover:border-brand";
-                seatCls = "text-brand";
-                seatText = "내 예약";
-              } else if (wanted) {
-                cls =
-                  "bg-brand-dark border-brand-dark text-white cursor-pointer shadow-[0_6px_16px_rgba(30,122,52,0.25)]";
-                seatCls = "text-[#cbeed3]";
-                seatText = "추가";
-              } else {
-                cls = "bg-white border-[#dbe0ea] text-ink cursor-pointer hover:border-brand-line";
-                seatCls = "text-brand-deep";
-                seatText = "예약 가능";
-              }
-
+              const [variant, status] = past
+                ? [mine ? styles.owned : styles.unavailable, mine ? "내 지난 예약" : "지난 시간"]
+                : taken
+                  ? [styles.unavailable, "예약됨"]
+                  : conflict
+                    ? [styles.change, "시간 중복"]
+                    : otherBusy
+                      ? [styles.unavailable, "다른 강의 예약"]
+                      : mine && !wanted
+                        ? [styles.change, "취소 예정"]
+                        : mine
+                          ? [styles.owned, "내 예약"]
+                          : wanted
+                            ? [styles.selected, "추가"]
+                            : [styles.available, "예약 가능"];
               return (
                 <button
+                  type="button"
                   key={time}
                   disabled={disabled}
+                  aria-label={`${time} ${status}`}
+                  aria-pressed={wanted}
                   onClick={() => onToggleTime(time)}
-                  className={`flex flex-col items-center gap-1 rounded-[12px] border px-2 py-2.5 transition-all ${cls}`}
+                  className={`${styles.timeSlot} ${variant}`}
                 >
-                  <span className="text-[14px] font-extrabold tracking-[-0.2px]">{time}</span>
-                  <span className={`text-[10.5px] font-semibold ${seatCls}`}>{seatText}</span>
+                  <span>{time}</span>
+                  {!disabled && status !== "예약 가능" && <span aria-hidden className={styles.slotStatus}>{status}</span>}
                 </button>
               );
             })}
           </div>
+          <p className={`${styles.small} mt-2`}>회색 시간대는 선택할 수 없습니다.</p>
         </section>
+      </div>
 
-  
-        <section className="mt-[22px] rounded-[18px] border border-line bg-white px-7 py-[22px]">
+        <section className={`${styles.panel} mt-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-0.5 text-xs font-semibold text-faint">
@@ -281,7 +195,7 @@ export default function DetailScreen({
                     ? `${cartListLabel} · ${cartItems.length}개 항목`
                     : "선택한 예약"}
               </div>
-              <div className="truncate text-[15px] font-bold text-ink">
+              <div className="wrap-anywhere text-[15px] font-semibold text-ink">
                 {shouldRemoveCurrentCart ? (
                   `${dateLabel(selectedDate)} · 변경 사항이 없습니다 · 목록에서 제거해주세요`
                 ) : hasPendingSelection ? (
@@ -329,11 +243,11 @@ export default function DetailScreen({
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
                 onClick={handlePrimary}
                 disabled={!canPrimary}
-                className={`rounded-xl px-[30px] py-3.5 text-[15px] font-bold whitespace-nowrap transition-colors ${
+                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
                   canPrimary
                     ? "cursor-pointer bg-brand-dark text-white hover:bg-brand"
                     : "cursor-not-allowed bg-[#e4e7ee] text-[#8b93a3]"
@@ -346,7 +260,7 @@ export default function DetailScreen({
         </section>
 
         {cartItems.length > 0 && (
-          <section className="mt-[22px] rounded-[18px] border border-line bg-white px-7 py-[24px]">
+          <section className={`${styles.quietSection} mt-5`}>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-[15px] font-bold tracking-[-0.3px]">{cartListLabel}</h2>
               <span className="text-[12px] font-bold text-hint">
@@ -389,6 +303,18 @@ export default function DetailScreen({
             </div>
           </section>
         )}
-    </main>
+      {windowReservations.length > 0 && (
+        <details className={`${styles.quietSection} mt-6`}>
+          <summary className="cursor-pointer text-sm font-medium">예약 가능 기간 내 내 예약</summary>
+          <ul className="mt-3 divide-y divide-line-divider">
+            {windowReservations.map((group) => (
+              <li key={group.key} className="wrap-anywhere py-2 text-sm">
+                {shortDateLabel(group.res_date)} · {group.lecture} · {timeRangeLabel(group.times)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }

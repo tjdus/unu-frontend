@@ -20,9 +20,11 @@ import {
 interface FormBuilderProps {
   initialSchema: string;
   onChange: (schemaString: string) => void;
+  /** "stacked" puts the preview under the editor, for narrow containers (e.g. half a page). */
+  layout?: "split" | "stacked";
 }
 
-export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
+export function FormBuilder({ initialSchema, onChange, layout = "split" }: FormBuilderProps) {
   const [schema, setSchema] = useState<FormSchema>(() =>
     parseSchema(initialSchema),
   );
@@ -109,7 +111,13 @@ export function FormBuilder({ initialSchema, onChange }: FormBuilderProps) {
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div
+      className={
+        layout === "stacked"
+          ? "grid min-w-0 grid-cols-1 gap-6"
+          : "grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      }
+    >
       {/* Left: Edit Section */}
       <Card className="min-w-0 max-w-full">
         <CardHeader>

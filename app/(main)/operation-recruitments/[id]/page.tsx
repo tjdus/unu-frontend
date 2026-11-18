@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { parseSchema } from "@/lib/interfaces/form-builder";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -190,7 +191,7 @@ export default function OperationRecruitmentDetailPage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <ClipboardList className="h-4 w-4" />
-                {recruitment.form.title}
+                질문 {parseSchema(recruitment.questions).questions.length}개
               </span>
             </div>
           </div>

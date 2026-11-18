@@ -596,13 +596,6 @@ export default function ApplicationDetailPage() {
               </div>
 
               <div className="text-sm font-medium text-muted-foreground">
-                폼 ID
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {application.formId}
-              </div>
-
-              <div className="text-sm font-medium text-muted-foreground">
                 제출일시
               </div>
               <div className="text-sm text-muted-foreground">

@@ -1,27 +1,5 @@
 import { AuditorDto } from "./auth";
-
-export interface FormRequest {
-  templateId?: string;
-  title: string;
-  description?: string;
-  startAt?: string;
-  endAt?: string;
-  schema: string;
-}
-
-export interface FormResponse {
-  id: string;
-  template?: FormTemplateResponse;
-  title: string;
-  description?: string;
-  startAt?: string;
-  endAt?: string;
-  schema: string;
-  createdAt: string;
-  modifiedAt: string;
-  createdBy: AuditorDto;
-  modifiedBy: AuditorDto;
-}
+import type { SchemaValue } from "./form-builder";
 
 export interface FormTemplateRequest {
   title: string;
@@ -33,7 +11,7 @@ export interface FormTemplateResponse {
   id: string;
   title: string;
   description?: string;
-  schema: string;
+  schema: SchemaValue;
   createdAt: string;
   modifiedAt: string;
   createdBy: AuditorDto;

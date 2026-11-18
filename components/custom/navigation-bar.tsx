@@ -13,8 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getCurrentQuarter } from "@/lib/api/quarter";
-import { QuarterResponse } from "@/lib/interfaces/quarter";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { useSidebarBadges } from "@/lib/hooks/useSidebarBadges";
@@ -30,24 +28,18 @@ const INTERNAL_ROUTE_PREFIXES = Array.from(
     ...Object.values(menuConfig)
       .flat()
       .flatMap((item) => ("href" in item ? [item.href] : [])),
-    "/forms",
     "/activity-opening",
   ]),
 );
 
-export function NavigationBar() {
+const subscribeToNothing = () => () => undefined;
+
+export function NavigationBar({ forceDeep = false }: { forceDeep?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const { userRole, logout, isLoading } = useAuth();
   const { setIsOpen } = useSidebar();
   const { hasAnyUnread } = useSidebarBadges();
-  const [currentQuarter, setCurrentQuarter] =
-    React.useState<QuarterResponse | null>(null);
-
-  React.useEffect(() => {
-    getCurrentQuarter().then(setCurrentQuarter).catch(() => undefined);
-  }, []);
-
   const isMainRoute = INTERNAL_ROUTE_PREFIXES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
@@ -56,8 +48,15 @@ export function NavigationBar() {
   const isEditorial =
     pathname === "/login" ||
     ((route === "portfolio" || route === "blog") && (!action || action === "edit"));
-  // About, its seven section pages (/about/[slug]) and their post editors share the deep About header.
-  const isDeepHeader = route === "about" || isEditorial;
+  // The member-only operation form (/apply/form?operationRecruitmentId=…) keeps the app look.
+  const isOperationApply = React.useSyncExternalStore(
+    subscribeToNothing,
+    () => pathname === "/apply/form" && Boolean(new URLSearchParams(window.location.search).get("operationRecruitmentId")),
+    () => false,
+  );
+  // About, its seven section pages (/about/[slug]) and their post editors share the deep About header,
+  // as do the public apply pages.
+  const isDeepHeader = forceDeep || route === "about" || route === "signup" || isEditorial || (route === "apply" && !isOperationApply);
 
   const rightContent = () => {
     if (isLoading) return isDeepHeader ? null : <div className="h-16 w-20 sm:w-[133px]" />;
@@ -159,13 +158,13 @@ export function NavigationBar() {
   };
 
   // The home page carries its own hero navigation instead of the global bar.
-  if (pathname === "/") return null;
+  if (!forceDeep && pathname === "/") return null;
   // The logged-in app uses its own sidebar (brand, home, logout) instead of the global bar.
-  if (isMainRoute) return null;
+  if (!forceDeep && (isMainRoute || isOperationApply)) return null;
 
   if (isDeepHeader) {
     return (
-      <header className={isEditorial ? `${aboutStyles.header} ${editorialStyles.archiveHeader}` : aboutStyles.header}>
+      <header data-site-navigation={forceDeep ? undefined : ""} className={isEditorial ? `${aboutStyles.header} ${editorialStyles.archiveHeader}` : aboutStyles.header}>
         <div className={aboutStyles.headerInner}>
           <PublicNavLinks variant="deep" />
           {rightContent()}
@@ -185,7 +184,7 @@ export function NavigationBar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center border-b border-white/10 bg-[#14231b] pl-4 md:pl-[26px]">
+    <header data-site-navigation className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center border-b border-white/10 bg-[#14231b] pl-4 md:pl-[26px]">
       {!isLoading && userRole !== "GUEST" && isMainRoute && (
         <Button
           variant="ghost"

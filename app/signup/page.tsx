@@ -1,14 +1,16 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signup, verifySignupEligibility } from "@/lib/api/auth";
 import { SignUpRequestDto, SignupEligibility } from "@/lib/interfaces/auth";
+import { AccountPage } from "@/components/custom/account-page";
+import styles from "@/components/custom/account-page.module.css";
 
 function formatPhoneNumber(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -17,29 +19,31 @@ function formatPhoneNumber(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
-function SignupForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+function SignupForm({ token }: { token: string | null }) {
   const [studentId, setStudentId] = useState("");
   const [eligibility, setEligibility] = useState<SignupEligibility | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [invalid, setInvalid] = useState(false);
+  const [complete, setComplete] = useState(false);
 
-  if (!token) {
+  if (complete || !token || invalid) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-2 text-center">
-            <CardTitle className="text-2xl font-bold">접근 불가</CardTitle>
-            <CardDescription>
-              유효하지 않은 초대 링크입니다.
-              <br />
-              관리자에게 초대 링크를 요청해주세요.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <AccountPage
+        title={complete ? "가입 완료" : "회원가입"}
+        intro={complete ? "CNU에 오신 것을 환영합니다!" : "운영진에게 받은 초대 링크로 접속해 주세요."}
+      >
+        <div className={styles.message}>
+          <span className={styles.eyebrow}>{complete ? "SIGN UP COMPLETE" : "INVITATION REQUIRED"}</span>
+          <h2>{complete ? "가입이 완료되었습니다" : "초대 링크를 사용할 수 없습니다"}</h2>
+          <p>{complete ? "가입한 아이디와 비밀번호로 로그인할 수 있습니다." : "링크가 만료되었거나 유효하지 않습니다. 운영진에게 새 초대 링크를 요청해 주세요."}</p>
+          <div className={styles.actions}>
+            <Link href={complete ? "/login" : "/"} className={styles.primary}>
+              {complete ? "로그인하기" : "홈으로 돌아가기"} <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </AccountPage>
     );
   }
 
@@ -50,6 +54,10 @@ function SignupForm() {
     try {
       setEligibility(await verifySignupEligibility(token!, studentId));
     } catch (verifyError) {
+      if (verifyError instanceof Error && /만료된 회원가입 링크/.test(verifyError.message)) {
+        setInvalid(true);
+        return;
+      }
       setError(
         verifyError instanceof Error
           ? verifyError.message
@@ -86,8 +94,12 @@ function SignupForm() {
         githubId: formData.get("githubId") as string,
       };
       await signup(data, token!);
-      router.push("/login");
+      setComplete(true);
     } catch (submitError) {
+      if (submitError instanceof Error && /만료된 회원가입 링크/.test(submitError.message)) {
+        setInvalid(true);
+        return;
+      }
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -99,20 +111,14 @@ function SignupForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 py-10">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
-          <CardDescription>
-            {eligibility
-              ? "사용할 계정 정보를 입력해주세요."
-              : "확인을 위해 학번을 먼저 입력해주세요."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AccountPage title="회원가입" intro={eligibility ? "사용할 계정 정보를 입력해 주세요." : "초대받은 학번을 확인하고 CNU 계정을 만들어 보세요."}>
+          <div className={styles.steps} aria-label="가입 단계">
+            <span aria-current={!eligibility ? "step" : undefined}>01 가입 대상 확인</span>
+            <span aria-current={eligibility ? "step" : undefined}>02 계정 정보</span>
+          </div>
           {!eligibility ? (
-            <form onSubmit={handleVerify}>
-              <FieldGroup>
+            <form onSubmit={handleVerify} className={styles.form}>
+              <FieldGroup className="gap-5">
                 <Field>
                   <FieldLabel htmlFor="studentId">학번</FieldLabel>
                   <Input
@@ -132,32 +138,32 @@ function SignupForm() {
                   />
                 </Field>
                 {error && (
-                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  <div role="alert" className={styles.error}>
                     {error}
                   </div>
                 )}
-                <Field>
-                  <Button type="submit" className="h-11 w-full" disabled={loading}>
+                <div className={styles.actions}>
+                  <Button type="submit" className={styles.primary} disabled={loading}>
                     {loading ? "확인 중..." : "가입 대상 확인"}
                   </Button>
-                </Field>
-                <FieldDescription className="text-center text-xs text-muted-foreground">
+                </div>
+                <FieldDescription className={styles.hint}>
                   명단에 등록된 학번만 가입할 수 있습니다.
                 </FieldDescription>
               </FieldGroup>
             </form>
           ) : (
-            <form onSubmit={handleSubmit}>
-              <FieldGroup>
-                <div className="rounded-md border bg-muted/40 p-4">
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <FieldGroup className={styles.fields}>
+                <div className={styles.notice}>
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#8fe3b0]" />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">가입 대상 확인 완료</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-1 text-sm">
                         {eligibility.studentId} · {eligibility.joinedQuarterName}
                       </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs">
                         {eligibility.invitationName}
                       </p>
                     </div>
@@ -172,16 +178,16 @@ function SignupForm() {
                   <Input id="major" name="major" type="text" defaultValue={eligibility.major ?? ""} placeholder="전공을 입력하세요" className="h-11" maxLength={100} required />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="subMajor">부전공</FieldLabel>
+                  <FieldLabel htmlFor="subMajor">부전공 (선택)</FieldLabel>
                   <Input id="subMajor" name="subMajor" type="text" defaultValue={eligibility.subMajor ?? ""} placeholder="부전공이 있다면 입력하세요 (선택)" className="h-11" maxLength={100} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="username">아이디</FieldLabel>
-                  <Input id="username" name="username" type="text" placeholder="아이디를 입력하세요" className="h-11" maxLength={50} pattern="[A-Za-z0-9._-]+" title="영문, 숫자, 마침표, 밑줄, 하이픈만 사용할 수 있습니다." autoComplete="username" required />
+                  <Input id="username" name="username" type="text" placeholder="아이디를 입력하세요" className="h-11" maxLength={50} pattern={String.raw`[A-Za-z0-9._\-]+`} title="영문, 숫자, 마침표, 밑줄, 하이픈만 사용할 수 있습니다." autoComplete="username" required />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="password">비밀번호</FieldLabel>
-                  <Input id="password" name="password" type="password" placeholder="다른 서비스에서 자주 사용하지 않는 비밀번호를 사용해 주세요" className="h-11" minLength={8} maxLength={100} autoComplete="new-password" required />
+                  <Input id="password" name="password" type="password" placeholder="8자 이상 입력하세요" aria-describedby="signup-password-hint" className="h-11" minLength={8} maxLength={100} autoComplete="new-password" required />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="passwordConfirm">비밀번호 확인</FieldLabel>
@@ -212,19 +218,20 @@ function SignupForm() {
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="githubId">GitHub ID</FieldLabel>
+                  <FieldLabel htmlFor="githubId">GitHub ID (선택)</FieldLabel>
                   <Input id="githubId" name="githubId" type="text" defaultValue={eligibility.githubId ?? ""} placeholder="GitHub 아이디를 입력하세요 (선택)" className="h-11" maxLength={100} autoComplete="off" />
                 </Field>
                 {error && (
-                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  <div role="alert" className={styles.error}>
                     {error}
                   </div>
                 )}
-                <div className="flex gap-2">
+                <p id="signup-password-hint" className={styles.hint}>다른 서비스에서 자주 사용하지 않는 비밀번호를 사용해 주세요.</p>
+                <div className={styles.actions}>
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11"
+                    className={styles.secondary}
                     onClick={() => {
                       setEligibility(null);
                       setError(null);
@@ -234,26 +241,29 @@ function SignupForm() {
                     <ArrowLeft className="mr-2 size-4" />
                     뒤로가기
                   </Button>
-                  <Button type="submit" className="h-11 flex-1" disabled={loading}>
+                  <Button type="submit" className={styles.primary} disabled={loading}>
                     {loading ? "처리 중..." : "회원가입"}
                   </Button>
                 </div>
-                <FieldDescription className="text-center text-xs text-muted-foreground">
+                <FieldDescription className={styles.hint}>
                   계정 관련 문의는 운영진에게 연락해주세요.
                 </FieldDescription>
               </FieldGroup>
             </form>
           )}
-        </CardContent>
-      </Card>
-    </div>
+    </AccountPage>
   );
+}
+
+function SignupContent() {
+  const token = useSearchParams().get("token");
+  return <SignupForm key={token} token={token} />;
 }
 
 export default function SignupPage() {
   return (
-    <Suspense>
-      <SignupForm />
+    <Suspense fallback={<AccountPage title="회원가입" intro="초대받은 학번을 확인하고 CNU 계정을 만들어 보세요." />}>
+      <SignupContent />
     </Suspense>
   );
 }

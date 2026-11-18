@@ -62,6 +62,12 @@ html:has([data-app-m3]) {
   scrollbar-color: #2b8a5e #10603f;
 }
 
+/* scrollbar-color is inherited: keep the green on the page scrollbar (the root's) only, and
+   give inner scroll areas (popovers, selects, text areas, tables) the regular scrollbar. */
+html:has([data-app-m3]) body {
+  scrollbar-color: auto;
+}
+
 /* White page panel inside the green frame. The right margin hands back the scrollbar's
    width (--app-scrollbar, set by the layout) so the visible green matches the top;
    the bottom gets a deeper margin. */
@@ -83,7 +89,7 @@ html:has([data-app-m3]) {
 }
 
 /* App shell: no site footer (contact / © live on the public site). */
-body:has([data-app-m3]) [data-site-footer] {
+body:has([data-app-m3]) :is([data-site-footer], [data-site-navigation]) {
   display: none;
 }
 

@@ -41,10 +41,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {} from "@/components/ui/alert-dialog";
 import { DeleteConfirmDialog } from "@/components/custom/common/delete-confirm-dialog";
 import { getAllRecruitments, deleteRecruitment } from "@/lib/api/recruitment";
-import { getAllForms } from "@/lib/api/form";
 import { getAllQuarters } from "@/lib/api/quarter";
 import { RecruitmentResponse } from "@/lib/interfaces/recruitment";
-import { FormResponse } from "@/lib/interfaces/form";
+import { parseSchema } from "@/lib/interfaces/form-builder";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
 import { formatDate } from "@/lib/utils/date-utils";
 
@@ -56,7 +55,6 @@ export default function AdminRecruitmentsPage() {
 
   // Data state
   const [recruitments, setRecruitments] = useState<RecruitmentResponse[]>([]);
-  const [forms, setForms] = useState<FormResponse[]>([]);
   const [quarters, setQuarters] = useState<QuarterResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,13 +77,11 @@ export default function AdminRecruitmentsPage() {
   async function loadData() {
     try {
       setLoading(true);
-      const [recruitmentsData, formsData, quartersData] = await Promise.all([
+      const [recruitmentsData, quartersData] = await Promise.all([
         getAllRecruitments(),
-        getAllForms(),
         getAllQuarters(),
       ]);
       setRecruitments(recruitmentsData);
-      setForms(formsData);
       setQuarters(quartersData);
     } catch (error: any) {
       console.error("Failed to load data:", error);
@@ -265,7 +261,7 @@ export default function AdminRecruitmentsPage() {
                       기간
                     </TableHead>
                     <TableHead className="hidden text-center xl:table-cell">
-                      양식
+                      질문
                     </TableHead>
                     <TableHead className="hidden text-center xl:table-cell">
                       분기
@@ -305,7 +301,7 @@ export default function AdminRecruitmentsPage() {
                         {formatDate(recruitment.endAt)}
                       </TableCell>
                       <TableCell className="hidden max-w-48 whitespace-normal break-words text-muted-foreground xl:table-cell">
-                        {recruitment.form.title}
+                        질문 {parseSchema(recruitment.questions).questions.length}개
                       </TableCell>
                       <TableCell className="hidden text-center text-muted-foreground xl:table-cell">
                         {recruitment.quarter.name}

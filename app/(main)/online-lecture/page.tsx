@@ -7,6 +7,7 @@ import OnlineLectureApp from "@/components/custom/online-lecture/OnlineLectureAp
 import LectureAdminView from "@/components/custom/online-lecture/LectureAdminView";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLectureParticipation } from "@/lib/hooks/useLectureParticipation";
+import styles from "@/components/custom/online-lecture/booking.module.css";
 
 type Tab = "my" | "admin";
 
@@ -31,34 +32,16 @@ export default function OnlineLecturePage() {
   const showTabs = isManager && !!participant;
   const activeTab = showTabs ? tab : isManager ? "admin" : "my";
 
-  return (
-    <>
-      {showTabs && (
-        <div className="mx-auto flex max-w-[1160px] gap-2 px-5 pt-6 sm:px-7">
-          <button
-            onClick={() => setTab("my")}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
-              activeTab === "my" ? "bg-brand-dark text-white" : "text-hint hover:bg-surface-sunken"
-            }`}
-          >
-            내 예약
-          </button>
-          <button
-            onClick={() => setTab("admin")}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
-              activeTab === "admin" ? "bg-brand-dark text-white" : "text-hint hover:bg-surface-sunken"
-            }`}
-          >
-            현황
-          </button>
-        </div>
-      )}
+  const tabs = showTabs ? (
+    <div className={styles.tabs} role="group" aria-label="인강 예약 화면">
+      <button type="button" aria-pressed={activeTab === "my"} onClick={() => setTab("my")}>강의 예약</button>
+      <button type="button" aria-pressed={activeTab === "admin"} onClick={() => setTab("admin")}>예약 현황</button>
+    </div>
+  ) : null;
 
-      {activeTab === "admin" ? (
-        <LectureAdminView />
-      ) : (
-        <OnlineLectureApp />
-      )}
-    </>
+  return (
+    <div className={styles.page}>
+      {activeTab === "admin" ? <LectureAdminView tabs={tabs} /> : <OnlineLectureApp tabs={tabs} />}
+    </div>
   );
 }

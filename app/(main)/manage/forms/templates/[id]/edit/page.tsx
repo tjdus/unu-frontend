@@ -19,6 +19,7 @@ import {
   deleteFormTemplate,
 } from "@/lib/api/form-template";
 import { FormTemplateResponse } from "@/lib/interfaces/form";
+import { schemaToString } from "@/lib/interfaces/form-builder";
 
 export default function EditFormTemplatePage() {
   const router = useRouter();
@@ -53,10 +54,10 @@ export default function EditFormTemplatePage() {
       setTemplate(data);
       setTitle(data.title);
       setDescription(data.description ?? "");
-      setSchema(data.schema);
+      setSchema(schemaToString(data.schema));
       setInitialTitle(data.title);
       setInitialDescription(data.description ?? "");
-      setInitialSchema(data.schema);
+      setInitialSchema(schemaToString(data.schema));
       setLastSaved(new Date(data.modifiedAt));
     } catch (error: any) {
       console.error("Failed to load template:", error);

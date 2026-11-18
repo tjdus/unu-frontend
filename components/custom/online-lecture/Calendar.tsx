@@ -1,6 +1,7 @@
 "use client";
 
 import { Calendar as SharedCalendar } from "@/components/ui/calendar";
+import styles from "./booking.module.css";
 import {
   fromDateStr,
   isReservableDate,
@@ -17,10 +18,12 @@ interface Props {
 export default function Calendar({ selected, onSelect }: Props) {
   const today = todayStr();
   return (
-    <section className="rounded-lg border border-line bg-white p-3">
-      <h2 className="px-3 pt-2 text-sm font-semibold">날짜 선택</h2>
+    <section className={styles.outlined}>
+      <h2 className={styles.sectionTitle}>날짜 선택</h2>
       <SharedCalendar
-        className="mx-auto w-full"
+        className="mx-auto mt-3 w-full p-0 [--cell-size:2rem]"
+        captionLayout="label"
+        weekStartsOn={1}
         mode="single"
         selected={fromDateStr(selected)}
         defaultMonth={fromDateStr(selected)}

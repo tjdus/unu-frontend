@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { deepToast } from "@/components/custom/deep-toast";
 import {
   deleteAboutExample,
   getAboutExamples,
@@ -18,16 +18,7 @@ import { LectureTitleThumbnail } from "@/components/custom/about/lecture-title-t
 import { HomeScrollDivider } from "@/components/custom/home-scroll-divider";
 import aboutStyles from "../about.module.css";
 import styles from "./detail.module.css";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { DeepConfirmDialog } from "@/components/custom/deep-confirm-dialog";
 
 const lecturePreviews: AboutExample[] = process.env.NODE_ENV === "development" ? [
   { id: "preview-lecture-django", title: "Django", description: "Django로 URL, 뷰, 모델을 연결해 웹 앱을 만듭니다." },
@@ -64,7 +55,7 @@ export default function AboutSectionDetailPage() {
     try {
       setExamples(await getAboutExamples(section.category));
     } catch {
-      toast.error("소개 글을 불러오지 못했습니다.");
+      deepToast.error("소개 글을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -87,9 +78,9 @@ export default function AboutSectionDetailPage() {
         current.filter((example) => example.id !== deleting.id),
       );
       setDeleting(null);
-      toast.success("소개 글을 삭제했습니다.");
+      deepToast.success("소개 글을 삭제했습니다.");
     } catch {
-      toast.error("소개 글을 삭제하지 못했습니다.");
+      deepToast.error("소개 글을 삭제하지 못했습니다.");
     } finally {
       setDeletePending(false);
     }
@@ -103,7 +94,7 @@ export default function AboutSectionDetailPage() {
       await reorderAboutExamples(next.map((example) => example.id));
     } catch {
       setExamples(previous);
-      toast.error("순서를 저장하지 못했습니다.");
+      deepToast.error("순서를 저장하지 못했습니다.");
     } finally {
       setSavingOrder(false);
     }
@@ -291,34 +282,19 @@ export default function AboutSectionDetailPage() {
         </section>
       </div>
 
-      <AlertDialog
+      <DeepConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(open) => {
           if (!open && !deletePending) setDeleting(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>소개 글을 삭제하시겠습니까?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleting?.title ?? "선택한 글"}과 등록된 이미지가 함께 삭제됩니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletePending}>취소</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={deletePending}
-              onClick={(event) => {
-                event.preventDefault();
-                void handleDelete();
-              }}
-            >
-              {deletePending ? "삭제 중..." : "삭제"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="소개 글을 삭제할까요?"
+        description={`${deleting?.title ?? "선택한 글"}과 등록된 이미지가 함께 삭제됩니다.`}
+        confirmLabel="삭제"
+        pendingLabel="삭제 중..."
+        destructive
+        pending={deletePending}
+        onConfirm={() => void handleDelete()}
+      />
     </main>
   );
 }

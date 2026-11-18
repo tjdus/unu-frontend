@@ -83,6 +83,17 @@ export function validateRequiredAnswers(
   return errors;
 }
 
+/** A schema as the API returns it: the backend stores it as JSON, so it can come back
+ *  either as a JSON string (forms saved from the builder) or as an object (seeded forms). */
+export type SchemaValue = string | Record<string, unknown>;
+
+/** The schema as a pretty JSON string, whichever shape the API returned. */
+export function schemaToString(schemaValue: SchemaValue | null | undefined): string {
+  if (schemaValue == null) return "";
+  if (typeof schemaValue === "string") return schemaValue;
+  return JSON.stringify(schemaValue, null, 2);
+}
+
 export function serializeSchema(schema: FormSchema): string {
   return JSON.stringify(schema, null, 2);
 }

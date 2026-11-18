@@ -1,170 +1,81 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Lecture, ReservationGroup } from "@/lib/online-lecture/types";
 import { durationLabel, shortDateLabel, timeRangeLabel } from "@/lib/online-lecture/date";
+import styles from "./booking.module.css";
 
 interface Props {
   lectures: Lecture[];
   upcoming: ReservationGroup[];
   onOpenLecture: (lecture: Lecture) => void;
   onGoMy: () => void;
+  tabs?: ReactNode;
 }
 
 const RULES = [
-  "신청한 강의만 예약할 수 있어요. 그 외 강의는 목록에서 확인만 가능합니다.",
-  "강의당 일주일 최대 4시간까지 예약할 수 있어요.",
-  "최대 연속 예약 가능 시간은 2시간까지입니다.",
-  "오늘부터 3주 이내 날짜만 예약할 수 있어요.",
+  "30분 단위로 예약할 수 있어요.",
+  "강의당 일주일에 최대 4시간 예약할 수 있어요.",
+  "한 번에 최대 2시간까지 연속 예약할 수 있어요.",
+  "오늘부터 3주 이내 날짜를 예약할 수 있어요.",
 ];
 
-export default function MainScreen({ lectures, upcoming, onOpenLecture, onGoMy }: Props) {
+export default function MainScreen({ lectures, upcoming, onOpenLecture, onGoMy, tabs }: Props) {
   const previewReservations = upcoming.slice(0, 2);
-  const hiddenDateCount = new Set(upcoming.slice(2).map((m) => m.res_date)).size;
+  const extraDates = new Set(upcoming.slice(2).map((item) => item.res_date)).size;
 
   return (
-    <main className="mx-auto max-w-[1160px] px-5 pt-11 pb-20 sm:px-7">
-      <h2 className="mb-[18px] text-[19px] font-bold tracking-[-0.4px]">예약 가능한 강의</h2>
-
-      <div className="grid grid-cols-1 items-start gap-[30px] lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* 강의 목록 */}
-        <section className="flex flex-col gap-[13px]">
-          {lectures.length === 0 && (
-            <div className="rounded-2xl border border-line bg-white px-[22px] py-8 text-center text-[13.5px] text-hint">
-              등록된 강의가 없습니다.
-            </div>
-          )}
-
-          {lectures.map((c) => {
-            const locked = !c.enrolled;
-            return (
-              <div
-                key={c.id}
-                onClick={() => !locked && onOpenLecture(c)}
-                className={`flex rounded-2xl border px-[22px] py-5 transition-all ${
-                  locked
-                    ? "cursor-default border-line-soft bg-surface-locked opacity-[0.72]"
-                    : "cursor-pointer border-line bg-white hover:border-brand-line hover:shadow-[0_4px_14px_rgba(0,0,0,0.04)]"
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="mb-[9px] flex items-center gap-[9px]">
-                    <span
-                      className={`inline-flex items-center gap-[5px] rounded-full px-2.5 py-1 text-xs font-bold ${
-                        locked
-                          ? "bg-[#f2f3f6] text-faint"
-                          : "bg-brand-soft text-brand-deep"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-1.5 w-1.5 rounded-full ${
-                          locked ? "bg-[#c2c7d1]" : "bg-[#22a75a]"
-                        }`}
-                      />
-                      {locked ? "미신청" : "예약 가능"}
-                    </span>
-                    {c.category && (
-                      <span className="rounded-md bg-line-soft px-1.5 py-0.5 text-[11px] font-bold text-ink-3">
-                        {c.category}
-                        </span>
-                    )}
-                    {c.level && (
-                      <span className="rounded-md bg-line-soft px-1.5 py-0.5 text-[11px] font-bold text-ink-3">
-                        {c.level}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="mb-1.5 text-[17px] font-bold tracking-[-0.4px] text-ink">
-                    {c.name}
-                  </h3>
-
-                  {/* 목록에선 한 줄만. 전문은 상세 화면에서 보여준다 */}
-                  {c.description && (
-                    <p className="line-clamp-1 text-[13.5px] leading-normal text-hint">
-                      {c.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-end justify-end self-stretch pl-[18px]">
-                  <span
-                    className={`text-[13px] font-bold whitespace-nowrap ${
-                      locked ? "text-[#8b93a3]" : "text-brand"
-                    }`}
-                  >
-                    {locked ? "미신청" : "예약하러 가기 →"}
-                  </span>
-                </div>
+    <div>
+      <header className={styles.heading}>
+        <h1>인강 예약</h1>
+        <p>신청한 강의의 수강 시간을 예약하고 내 예약을 확인하세요.</p>
+      </header>
+      {tabs}
+      <div className={styles.listing}>
+        <section aria-labelledby="reservable-lectures">
+          <h2 id="reservable-lectures" className={styles.sectionTitle}>강의 목록</h2>
+          {lectures.length === 0 && <p className={`${styles.small} py-6`}>등록된 강의가 없습니다.</p>}
+          {lectures.map((course) => (
+            <div key={course.id} className={styles.courseRow}>
+              <div className="space-y-1">
+                <h3>{course.name}</h3>
+                {(course.category || course.level) && <p className={styles.small}>{[course.category, course.level].filter(Boolean).join(" · ")}</p>}
+                {course.description && <p className={`${styles.small} line-clamp-1`}>{course.description}</p>}
               </div>
-            );
-          })}
+              {course.enrolled ? (
+                <Button type="button" variant="link" size="sm" onClick={() => onOpenLecture(course)} aria-label={`${course.name} 예약하기`}>예약하기 <ArrowRight size={14} /></Button>
+              ) : <span className={styles.small}>미신청</span>}
+            </div>
+          ))}
         </section>
-
-        {/* 우측 레일 */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-[84px]">
-          <div className="rounded-2xl bg-brand-dark p-[22px] text-white">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-bold">내 예약</span>
-              <button
-                onClick={onGoMy}
-                className="cursor-pointer text-xs font-semibold text-[#aeb9e6] hover:text-white"
-              >
-                전체 보기 →
-              </button>
+        <aside className={styles.rail}>
+          <section className={styles.panel}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2>예약 요약</h2>
+              <button type="button" className="inline-flex items-center gap-1 py-1 text-sm text-brand-dark hover:underline" onClick={onGoMy}>내 예약 <ArrowRight size={14} /></button>
             </div>
-
-            {upcoming.length === 0 ? (
-              <p className="border-t border-white/10 pt-3 text-[12.5px] text-white/60">
-                예정된 예약이 없습니다.
-              </p>
-            ) : (
-              <>
-                {previewReservations.map((m) => (
-                  <div
-                    key={m.key}
-                    className="flex items-center gap-3 border-t border-white/10 py-[11px]"
-                  >
-                    <div className="min-w-[42px] text-center">
-                      <div className="text-[11px] font-semibold text-[#ffffff]">
-                        {shortDateLabel(m.res_date)}
-                      </div>
-                      <div className="text-[15px] font-extrabold tracking-[-0.3px]">
-                        {m.times[0]}
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-bold">{m.lecture}</div>
-                      <div className="mt-0.5 text-[11px] font-bold text-[#ffffff]">
-                        {timeRangeLabel(m.times)} · {durationLabel(m.times.length)}
-                      </div>
-                    </div>
-                  </div>
+            {previewReservations.length === 0 ? <p className={`${styles.small} mt-3`}>예정된 예약이 없습니다.</p> : (
+              <ul className="mt-2 divide-y divide-line-divider">
+                {previewReservations.map((item) => (
+                  <li key={item.key} className="space-y-1 py-2.5">
+                    <p className="wrap-anywhere text-sm font-semibold">{item.lecture}</p>
+                    <p className={styles.small}>{shortDateLabel(item.res_date)} · {timeRangeLabel(item.times)} · {durationLabel(item.times.length)}</p>
+                  </li>
                 ))}
-                {hiddenDateCount > 0 && (
-                  <p className="border-t border-white/10 pt-3 text-[12.5px] font-bold text-[#b9e0c2]">
-                    그 외 {hiddenDateCount}개 날짜의 예약이 더 있어요
-                  </p>
-                )}
-              </>
+              </ul>
             )}
-          </div>
-
-          <div className="rounded-2xl border border-line bg-white p-[22px]">
-            <div className="mb-3.5 flex items-center gap-2">
-              <span className="text-[15px]">📌</span>
-              <span className="text-sm font-bold">예약 안내</span>
-            </div>
-            <ul className="flex list-none flex-col gap-[11px] p-0">
-              {RULES.map((r) => (
-                <li key={r} className="flex gap-[9px] text-[12.8px] leading-normal text-ink-3">
-                  <span className="shrink-0 font-extrabold text-brand">·</span>
-                  <span>{r}</span>
-                </li>
-              ))}
+            {extraDates > 0 && <p className={`${styles.small} border-t border-line-divider pt-2`}>그 외 {extraDates}개 날짜의 예약이 더 있어요.</p>}
+          </section>
+          <section className={styles.panel}>
+            <h2>예약 정책</h2>
+            <ul className={`${styles.small} mt-3 list-disc space-y-2 pl-4`}>
+              {RULES.map((rule) => <li key={rule}>{rule}</li>)}
             </ul>
-          </div>
+          </section>
         </aside>
       </div>
-    </main>
+    </div>
   );
 }

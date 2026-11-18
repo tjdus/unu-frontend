@@ -57,7 +57,7 @@ function sameTimes(a: string[], b: string[]): boolean {
   return left.every((time, index) => time === right[index]);
 }
 
-export default function OnlineLectureApp() {
+export default function OnlineLectureApp({ tabs }: { tabs?: React.ReactNode }) {
   const [screen, setScreen] = useState<Screen>("auth");
   const [initialized, setInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | null>(null);
@@ -682,7 +682,7 @@ export default function OnlineLectureApp() {
   );
 
   return (
-    <div className="min-h-full bg-canvas">
+    <div>
       {screen === "auth" && (
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-5 text-center">
           <p className="text-sm font-semibold text-hint">
@@ -706,6 +706,7 @@ export default function OnlineLectureApp() {
           upcoming={upcoming}
           onOpenLecture={openLecture}
           onGoMy={goMy}
+          tabs={tabs}
         />
       )}
 
@@ -755,12 +756,12 @@ export default function OnlineLectureApp() {
           className="fixed top-5 left-1/2 z-50 max-w-[calc(100vw-32px)] -translate-x-1/2"
         >
           <div
-            className={`w-[min(360px,calc(100vw-32px))] rounded-xl border bg-white px-4 py-3 text-[13.5px] font-bold shadow-[0_18px_50px_rgba(22,30,46,0.16)] ${
+            className={`w-[min(360px,calc(100vw-32px))] rounded-xl border bg-white px-4 py-3 text-[13.5px] shadow-[0_18px_50px_rgba(22,30,46,0.16)] ${
               toast.tone === "success"
-                ? "border-brand-line text-brand-dark"
+                ? "border-brand-line font-medium text-brand-dark"
                 : toast.tone === "error"
-                  ? "border-danger-line text-danger"
-                  : "border-line text-ink-2"
+                  ? "border-danger-line font-bold text-danger"
+                  : "border-line font-bold text-ink-2"
             }`}
           >
             {toast.message}

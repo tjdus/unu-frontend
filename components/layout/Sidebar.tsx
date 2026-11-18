@@ -63,8 +63,9 @@ function SidebarUserCard({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
+function SidebarContent({ onNavigate, activePath }: { onNavigate?: () => void; activePath?: string }) {
+  const currentPath = usePathname();
+  const pathname = activePath ?? currentPath;
   const { userRole, roles, hasRole, logout } = useAuth();
   const { getUnreadCount } = useSidebarBadges();
   const { loading: lectureLoading, participant: lectureParticipant } =
@@ -160,7 +161,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ activePath }: { activePath?: string }) {
   const { isOpen, setIsOpen } = useSidebar();
 
   return (
@@ -189,12 +190,12 @@ export function Sidebar() {
         >
           <X className="size-4" />
         </Button>
-        <SidebarContent onNavigate={() => setIsOpen(false)} />
+        <SidebarContent activePath={activePath} onNavigate={() => setIsOpen(false)} />
       </aside>
 
       {/* Desktop sidebar */}
       <aside className="sticky top-0 z-40 hidden h-dvh w-[264px] shrink-0 flex-col bg-[#10603f] md:flex">
-        <SidebarContent />
+        <SidebarContent activePath={activePath} />
       </aside>
     </>
   );

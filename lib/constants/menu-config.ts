@@ -128,7 +128,7 @@ export const menuConfig: MenuConfig = {
       icon: Calendar,
     },
     {
-      label: "신청서 관리",
+      label: "Form 템플릿",
       href: "/manage/forms",
       icon: FileText,
     },

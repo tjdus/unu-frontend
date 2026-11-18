@@ -49,7 +49,7 @@ function isLectureRoomManagerRecruitment(
 ): boolean {
   if (recruitment.type !== "INTERNAL_OPERATION") return false;
   const questionTitles = new Set(
-    parseSchema(recruitment.form.schema).questions.map((question) =>
+    parseSchema(recruitment.questions).questions.map((question) =>
       question.title.replace(/\s+/g, ""),
     ),
   );
@@ -352,10 +352,10 @@ export default function RecruitmentDetailPage() {
                 icon={<ClipboardList className="h-4 w-4" />}
                 label={
                   recruitment.type === "INTERNAL_OPERATION"
-                    ? "신청서 양식"
-                    : "지원서 양식"
+                    ? "신청서 질문"
+                    : "지원서 질문"
                 }
-                value={recruitment.form.title}
+                value={`${parseSchema(recruitment.questions).questions.length}개`}
               />
               <InfoRow
                 icon={<Link2 className="h-4 w-4" />}

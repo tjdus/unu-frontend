@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Search, FileText } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { lookupApplication, verifyApplication } from "@/lib/api/application";
 import { ApiError } from "@/lib/api/publicClient";
 import { ApplicationLookupResponse } from "@/lib/interfaces/application";
+import { cn } from "@/lib/utils";
+import {
+  Chip,
+  Field,
+  applyStyles as styles,
+  formatDot,
+} from "@/components/custom/apply/apply-ui";
 
 export default function ApplicationLookupPage() {
   const router = useRouter();
@@ -27,8 +25,7 @@ export default function ApplicationLookupPage() {
   // Step 2: Verify field
   const [password, setPassword] = useState("");
 
-  const [foundApplication, setFoundApplication] =
-    useState<ApplicationLookupResponse | null>(null);
+  const [foundApplication, setFoundApplication] = useState<ApplicationLookupResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,19 +40,13 @@ export default function ApplicationLookupPage() {
 
     try {
       setIsLoading(true);
-
-      // Step 1: Search for application
-      const application = await lookupApplication({
-        name: name.trim(),
-        email: email.trim(),
-      });
-
+      const application = await lookupApplication({ name: name.trim(), email: email.trim() });
       setFoundApplication(application);
       setError(null);
-    } catch (error: unknown) {
-      console.error("Failed to search application:", error);
+    } catch (searchError: unknown) {
+      console.error("Failed to search application:", searchError);
       setError(
-        error instanceof ApiError && error.status === 429
+        searchError instanceof ApiError && searchError.status === 429
           ? "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
           : "입력하신 정보와 일치하는 지원서를 찾을 수 없습니다",
       );
@@ -81,30 +72,19 @@ export default function ApplicationLookupPage() {
 
     try {
       setIsLoading(true);
-
-      // Step 2: Verify password
-      const verification = await verifyApplication(
-        foundApplication.id,
-        password,
-      );
+      const verification = await verifyApplication(foundApplication.id, password);
 
       // The short-lived token limits the impact of browser storage exposure.
-      sessionStorage.setItem(
-        "current_application",
-        JSON.stringify(verification.application),
-      );
-      sessionStorage.setItem(
-        "current_application_token",
-        verification.accessToken,
-      );
+      sessionStorage.setItem("current_application", JSON.stringify(verification.application));
+      sessionStorage.setItem("current_application_token", verification.accessToken);
       sessionStorage.removeItem("current_application_pwd");
 
       // Navigate to detail page (no ID in URL)
       router.push("/apply/my/application");
-    } catch (error: unknown) {
-      console.error("Failed to verify application:", error);
+    } catch (verifyError: unknown) {
+      console.error("Failed to verify application:", verifyError);
       setError(
-        error instanceof ApiError && error.status === 429
+        verifyError instanceof ApiError && verifyError.status === 429
           ? "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
           : "비밀번호가 올바르지 않습니다.",
       );
@@ -112,221 +92,144 @@ export default function ApplicationLookupPage() {
     }
   };
 
+  const resetSearch = () => {
+    setFoundApplication(null);
+    setPassword("");
+    setError(null);
+  };
+
+  const errorAlert = error && (
+    <p className={cn(styles.alert, styles.alertError)} role="alert">{error}</p>
+  );
+
+  const foundSummary = foundApplication && (
+    <dl className={styles.stack}>
+      <div className={styles.info}>
+        <dt>이름</dt>
+        <dd>{foundApplication.name}</dd>
+      </div>
+      <div className={styles.info}>
+        <dt>이메일</dt>
+        <dd>{foundApplication.email}</dd>
+      </div>
+      <div className={styles.info}>
+        <dt>제출일</dt>
+        <dd>{formatDot(foundApplication.createdAt)}</dd>
+      </div>
+    </dl>
+  );
+
   return (
-    <div className="container mx-auto max-w-md py-16 px-4">
-      <div className="mb-8 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="p-3 bg-primary/10 rounded-full">
-            <FileText className="h-8 w-8 text-primary" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-bold mb-2">내 지원서 조회</h1>
-        <p className="text-muted-foreground">
-          본인 정보를 입력하여 제출한 지원서를 확인할 수 있습니다.
-        </p>
-      </div>
+    <main className={styles.page}>
+      <div className={styles.split}>
+        <section className={styles.splitIntro} aria-labelledby="lookup-title">
+          <nav className={styles.crumbs} aria-label="위치">
+            <Link href="/apply">
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              지원 안내
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">내 지원서 조회</span>
+          </nav>
+          <p className={styles.bigTitle} aria-hidden="true" lang="en">Lookup</p>
+          <h1 id="lookup-title" className="sr-only">내 지원서 조회</h1>
+          <p>{"지원서 제출 시 입력한 이름과 이메일로\n지원서를 찾을 수 있습니다."}</p>
+        </section>
 
-      {!foundApplication ? (
-        // Step 1: Search form
-        <Card>
-          <CardHeader>
-            <CardTitle>지원서 검색</CardTitle>
-            <CardDescription>
-              지원서 제출 시 입력한 본인 정보를 입력해주세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  이름 <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="홍길동"
-                  disabled={isLoading}
-                  autoFocus
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">
-                  이메일 <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="example@email.com"
-                  disabled={isLoading}
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                <Search className="mr-2 h-4 w-4" />
+        <div className={styles.splitPanel}>
+          {!foundApplication ? (
+            <form className={styles.stack} onSubmit={handleSearch} noValidate>
+              <span className={styles.tag}>01 · 지원서 검색</span>
+              <Field
+                label="이름"
+                required
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError(null);
+                }}
+                placeholder="홍길동"
+                disabled={isLoading}
+                autoFocus
+              />
+              <Field
+                label="이메일"
+                required
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                placeholder="example@email.com"
+                disabled={isLoading}
+              />
+              {errorAlert}
+              <button type="submit" className={styles.button} disabled={isLoading}>
                 {isLoading ? "검색 중..." : "지원서 검색"}
-              </Button>
+              </button>
             </form>
-          </CardContent>
-        </Card>
-      ) : foundApplication.status === "CANCELED" ? (
-        // Canceled application
-        <div className="space-y-4">
-          <Card className="bg-muted/40 border-muted">
-            <CardContent>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                </div>
+          ) : foundApplication.status === "CANCELED" ? (
+            <section className={styles.panel} aria-labelledby="lookup-canceled">
+              <div className={styles.panelHead}>
                 <div>
-                  <p className="font-semibold">취소된 지원서입니다</p>
-                  <p className="text-sm text-muted-foreground">
-                    제출일:{" "}
-                    {new Date(foundApplication.createdAt).toLocaleDateString(
-                      "ko-KR",
-                    )}
-                  </p>
+                  <span className={styles.tag}>02 · 조회 결과</span>
+                  <h2 id="lookup-canceled" className="sr-only">취소된 지원서</h2>
                 </div>
+                <Chip>취소된 지원서입니다</Chip>
               </div>
-              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                <div className="min-w-0">
-                  <span className="text-muted-foreground">이름:</span>{" "}
-                  <span className="font-medium">{foundApplication.name}</span>
-                </div>
-                <div className="min-w-0 break-words">
-                  <span className="text-muted-foreground">이메일:</span>{" "}
-                  <span className="font-medium">{foundApplication.email}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              setFoundApplication(null);
-              setError(null);
-            }}
-          >
-            다시 검색
-          </Button>
-        </div>
-      ) : (
-        // Step 2: Verify form
-        <div className="space-y-4">
-          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-            <CardContent>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-green-500 rounded-full">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
+              {foundSummary}
+              <button type="button" className={styles.buttonOutlined} onClick={resetSearch}>
+                다시 검색
+              </button>
+            </section>
+          ) : (
+            <form className={styles.panel} onSubmit={handleVerify} noValidate aria-labelledby="lookup-verify">
+              <div className={styles.panelHead}>
                 <div>
-                  <p className="font-semibold">지원서를 찾았습니다</p>
-                  <p className="text-sm text-muted-foreground">
-                    제출일:{" "}
-                    {new Date(foundApplication.createdAt).toLocaleDateString(
-                      "ko-KR",
-                    )}
-                  </p>
+                  <span className={styles.tag}>02 · 비밀번호 확인</span>
+                  <h2 id="lookup-verify" className="sr-only">비밀번호 확인</h2>
                 </div>
+                <Chip active>지원서를 찾았습니다</Chip>
               </div>
-              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                <div className="min-w-0">
-                  <span className="text-muted-foreground">이름:</span>{" "}
-                  <span className="font-medium">{foundApplication.name}</span>
-                </div>
-                <div className="min-w-0 break-words">
-                  <span className="text-muted-foreground">이메일:</span>{" "}
-                  <span className="font-medium">{foundApplication.email}</span>
-                </div>
+              {foundSummary}
+              <Field
+                label="비밀번호"
+                required
+                secret
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
+                support="지원서 제출 시 설정한 비밀번호"
+                disabled={isLoading}
+                autoFocus
+              />
+              {errorAlert}
+              <div className={styles.actions}>
+                <button type="button" className={styles.buttonOutlined} onClick={resetSearch} disabled={isLoading}>
+                  다시 검색
+                </button>
+                <button type="submit" className={styles.button} disabled={isLoading}>
+                  {isLoading ? "확인 중..." : "확인"}
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </form>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>비밀번호 확인</CardTitle>
-              <CardDescription>
-                지원서를 확인하려면 비밀번호를 입력해주세요.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerify} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">
-                    비밀번호 <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder="지원서 제출 시 설정한 비밀번호"
-                    disabled={isLoading}
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    비밀번호는 지원서 제출 시 설정한 비밀번호입니다.
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm text-destructive">{error}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setFoundApplication(null);
-                      setPassword("");
-                      setError(null);
-                    }}
-                    disabled={isLoading}
-                    className="flex-1"
-                  >
-                    다시 검색
-                  </Button>
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
-                    {isLoading ? "확인 중..." : "확인"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <section className={styles.notice} aria-labelledby="lookup-notice">
+            <h2 id="lookup-notice">안내사항</h2>
+            <ul>
+              <li>지원서 제출 시 입력한 정보와 동일하게 입력해 주세요.</li>
+              <li>검토가 시작된 지원서는 수정할 수 없습니다.</li>
+              <li>
+                <span>비밀번호를 잊으신 경우 <a href="mailto:admin@cnu.team">admin@cnu.team</a>으로 문의해 주세요.</span>
+              </li>
+            </ul>
+          </section>
         </div>
-      )}
-
-      <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-        <h3 className="text-sm font-semibold mb-2">안내사항</h3>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• 지원서 제출 시 입력한 정보와 동일하게 입력해주세요.</li>
-          <li>• 비밀번호를 잊으신 경우 관리자에게 문의해주세요.</li>
-          <li>• 검토가 시작된 지원서는 수정할 수 없습니다</li>
-        </ul>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,13 +1,8 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CalendarDays, FileText, Info, Clock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   getActiveRecruitment,
   getPublicRecruitmentById,
@@ -16,24 +11,31 @@ import { getCurrentQuarter } from "@/lib/api/quarter";
 import { ApiError } from "@/lib/api/publicClient";
 import { RecruitmentResponse } from "@/lib/interfaces/recruitment";
 import { QuarterResponse } from "@/lib/interfaces/quarter";
+import {
+  ApplyDivider,
+  ApplyHero,
+  ApplySkeleton,
+  Chip,
+  SectionHead,
+  StatusChip,
+  applyStyles as styles,
+  canApplyTo,
+  formatDeadline,
+  formatDot,
+  formatQuarterLabel,
+  formatTime,
+  getRecruitmentStatus,
+} from "@/components/custom/apply/apply-ui";
+import { cn } from "@/lib/utils";
 
-function formatQuarterLabel(quarter: QuarterResponse): string {
-  return `${String(quarter.year).slice(2)} ${quarter.season.toUpperCase()}`;
-}
-
-type RecruitmentStatus = "모집중" | "모집 예정" | "모집 마감";
+const HOME_CRUMBS = [{ label: "Home", href: "/" }, { label: "지원" }];
 
 function ApplyPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const recruitmentId = searchParams.get("recruitmentId");
 
-  const [recruitment, setRecruitment] = useState<RecruitmentResponse | null>(
-    null,
-  );
-  const [quarter, setQuarter] = useState<QuarterResponse | null>(null);
-  const [currentQuarter, setCurrentQuarter] =
-    useState<QuarterResponse | null>(null);
+  const [recruitment, setRecruitment] = useState<RecruitmentResponse | null>(null);
+  const [currentQuarter, setCurrentQuarter] = useState<QuarterResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,9 +45,7 @@ function ApplyPageContent() {
     setRecruitment(null);
 
     const [recruitmentResult, currentQuarterResult] = await Promise.allSettled([
-      recruitmentId
-        ? getPublicRecruitmentById(recruitmentId)
-        : getActiveRecruitment(),
+      recruitmentId ? getPublicRecruitmentById(recruitmentId) : getActiveRecruitment(),
       getCurrentQuarter(),
     ]);
 
@@ -54,9 +54,7 @@ function ApplyPageContent() {
     }
 
     if (recruitmentResult.status === "fulfilled") {
-      const recruitmentData = recruitmentResult.value;
-      setRecruitment(recruitmentData);
-      setQuarter(recruitmentData.quarter);
+      setRecruitment(recruitmentResult.value);
     } else {
       const reason = recruitmentResult.reason;
       const isNotFound = reason instanceof ApiError && reason.status === 404;
@@ -78,278 +76,153 @@ function ApplyPageContent() {
     return () => window.clearTimeout(timeoutId);
   }, [loadActiveRecruitment]);
 
-  function getRecruitmentStatus(): RecruitmentStatus {
-    if (!recruitment) return "모집 마감";
-
-    const now = new Date();
-    const start = new Date(recruitment.startAt);
-    const end = new Date(recruitment.endAt);
-
-    if (now < start) return "모집 예정";
-    if (now > end) return "모집 마감";
-    return "모집중";
-  }
-
-  function getStatusBadge() {
-    const status = getRecruitmentStatus();
-
-    if (status === "모집중") {
-      return <Badge className="bg-green-500 text-white">모집중</Badge>;
-    }
-    if (status === "모집 예정") {
-      return <Badge variant="secondary">모집 예정</Badge>;
-    }
-    return (
-      <Badge variant="outline" className="text-muted-foreground">
-        모집 마감
-      </Badge>
-    );
-  }
-
-  function formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  }
-
-  function formatDateTime(dateString: string): string {
-    return new Date(dateString).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  function handleApply() {
-    if (!recruitment) return;
-    router.push(
-      `/apply/form?recruitmentId=${encodeURIComponent(recruitment.id)}`,
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto max-w-4xl py-12 px-4">
-        <div className="space-y-6">
-          <Skeleton className="h-10 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <ApplySkeleton />;
 
   if (error) {
     return (
-      <div className="container mx-auto max-w-4xl py-12 px-4">
-        <Card>
-          <CardContent className="pt-12 pb-12">
-            <div className="text-center space-y-4">
-              <p className="text-lg text-muted-foreground">{error}</p>
-              <div className="flex justify-center gap-3">
-                <Button
-                  onClick={() => loadActiveRecruitment()}
-                  variant="outline"
-                >
-                  다시 시도
-                </Button>
-                <Button onClick={() => router.push("/")}>
-                  홈으로 돌아가기
-                </Button>
-              </div>
+      <main className={styles.page}>
+        <ApplyHero
+          crumbs={HOME_CRUMBS}
+          display="Recruit"
+          title="모집 정보를 확인할 수 없습니다"
+          description={error}
+          aside={
+            <div className={styles.actions}>
+              <button type="button" className={styles.buttonOutlined} onClick={() => void loadActiveRecruitment()}>
+                다시 시도
+              </button>
+              <Link href="/" className={styles.button}>홈으로 돌아가기</Link>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          }
+        />
+      </main>
     );
   }
 
+  // No recruitment yet: the "SOON" state.
   if (!recruitment) {
-    const quarterLabel = currentQuarter
-      ? formatQuarterLabel(currentQuarter)
-      : null;
-
+    const quarterLabel = currentQuarter ? formatQuarterLabel(currentQuarter) : null;
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-20 text-center">
-        <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
-          {quarterLabel ? `${quarterLabel} CNU` : "CNU"}
-          <br />
-          리크루팅 안내
-        </h1>
-        <p className="mt-6 text-muted-foreground">
-          {quarterLabel
-            ? `${quarterLabel} 분기 CNU 리크루팅이 곧 시작될 예정입니다.`
-            : "다음 CNU 리크루팅이 곧 시작될 예정입니다."}
-        </p>
-        <Button
-          variant="outline"
-          className="mt-8 rounded-full px-8"
-          onClick={() => router.push("/")}
-        >
-          리크루팅 공고
-        </Button>
-      </div>
+      <main className={styles.page}>
+        <ApplyHero
+          crumbs={HOME_CRUMBS}
+          display="Soon"
+          title={`${quarterLabel ? `${quarterLabel} ` : ""}CNU\n리크루팅 안내`}
+          meta={<Chip>모집 예정</Chip>}
+          description={
+            quarterLabel
+              ? `${quarterLabel} 분기 CNU 리크루팅이 곧 시작될 예정입니다.\n모집이 열리면 이 페이지에서 바로 지원할 수 있습니다.`
+              : "다음 CNU 리크루팅이 곧 시작될 예정입니다.\n모집이 열리면 이 페이지에서 바로 지원할 수 있습니다."
+          }
+          aside={
+            <div className={styles.actions}>
+              <Link href="/" className={styles.buttonOutlined}>리크루팅 공고</Link>
+            </div>
+          }
+        />
+      </main>
     );
   }
 
-  const status = getRecruitmentStatus();
-  const canApply = status === "모집중" && recruitment.active;
+  const status = getRecruitmentStatus(recruitment);
+  const canApply = canApplyTo(recruitment);
+  const formHref = `/apply/form?recruitmentId=${encodeURIComponent(recruitment.id)}`;
+  const quarterLabel = recruitment.quarter ? formatQuarterLabel(recruitment.quarter) : null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto w-full max-w-5xl px-4 py-12">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/")}
-          className="mb-8"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          돌아가기
-        </Button>
+    <main className={styles.page}>
+      <ApplyHero
+        crumbs={HOME_CRUMBS}
+        display="Recruit"
+        title={recruitment.title}
+        meta={
+          <>
+            <StatusChip status={status} />
+            {quarterLabel && <Chip>{quarterLabel}</Chip>}
+            <span>{formatDot(recruitment.startAt)} — {formatDot(recruitment.endAt)}</span>
+          </>
+        }
+        description={
+          !recruitment.active
+            ? "이 모집은 현재 비활성 상태입니다."
+            : status === "모집 예정"
+              ? "모집이 시작되면 지원서를 작성할 수 있습니다.\n아래 모집 안내를 먼저 확인해 주세요."
+              : status === "모집 마감"
+                ? "모집이 마감되었습니다.\n제출한 지원서는 “내 지원서 조회”에서 확인할 수 있습니다."
+                : "아래 모집 안내를 확인하고 지원서를 작성해 주세요.\n제출한 지원서는 모집 마감 전까지 수정하거나 취소할 수 있습니다."
+        }
+      />
 
-        <div className="space-y-8">
-          {/* SECTION 1: Header */}
-          <div className="space-y-4">
-            <div className="flex min-w-0 items-start gap-3">
-              <h1 className="min-w-0 flex-1 break-words text-3xl font-bold sm:text-4xl">
-                {recruitment.title}
-              </h1>
-              {getStatusBadge()}
-            </div>
+      <ApplyDivider />
 
-            {/* Meta Info */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 shrink-0" />
-                <span>
-                  {formatDate(recruitment.startAt)} ~{" "}
-                  {formatDate(recruitment.endAt)}
-                </span>
-              </div>
-              {quarter && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {quarter.name}
-                  </Badge>
-                </div>
-              )}
-            </div>
-
-            {!recruitment.active && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                <Info className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                <span className="text-sm text-amber-800 dark:text-amber-200">
-                  이 모집은 현재 비활성 상태입니다
-                </span>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* SECTION 2: Description */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">모집 안내</h2>
-            {recruitment.description ? (
-              <div className="prose prose-sm max-w-none break-words whitespace-pre-wrap text-foreground/90 leading-relaxed">
-                {recruitment.description}
-              </div>
+      <div className={cn(styles.body, styles.bodyCentered)}>
+        <div className={styles.content}>
+          <section className={styles.section} aria-labelledby="apply-guide">
+            <SectionHead tag="About this recruitment" title="모집 안내" id="apply-guide" />
+            <dl className={styles.period}>
+              <dt>모집 기간</dt>
+              <dd>
+                <time dateTime={recruitment.startAt}>{formatDot(recruitment.startAt)}</time>
+                <span aria-hidden="true">—</span>
+                <time dateTime={recruitment.endAt}>{formatDot(recruitment.endAt)} {formatTime(recruitment.endAt)}</time>
+              </dd>
+            </dl>
+            {recruitment.description?.trim() ? (
+              <p className={styles.lead}>{recruitment.description}</p>
             ) : (
-              <p className="text-sm text-muted-foreground italic">
-                상세 안내가 제공되지 않았습니다.
-              </p>
+              <p className={styles.help}>상세 안내가 제공되지 않았습니다.</p>
             )}
-          </div>
+          </section>
 
-          {/* SECTION 3: Apply CTA */}
-          <div className="bg-background rounded-lg border shadow-sm p-6 space-y-5">
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">지원하기</h2>
-              <p className="text-sm text-muted-foreground">
-                {canApply
-                  ? "아래 버튼을 눌러 지원서를 작성할 수 있습니다."
-                  : status === "모집 예정"
-                    ? "모집 시작 후 신청할 수 있습니다."
-                    : status === "모집 마감"
-                      ? "모집이 마감되었습니다."
-                      : "현재 신청할 수 없습니다"}
-              </p>
-            </div>
-
-            {/* Key Info */}
-            {canApply && (
-              <div className="space-y-2 text-sm">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b py-2">
-                  <span className="flex shrink-0 items-center gap-2" >
-                    <Clock className="h-4 w-4" />
-                    모집 마감
-                  </span>
-                  <span className="font-medium">
-                    {formatDateTime(recruitment.endAt)}
-                  </span>
-                </div>
+          <section className={cn(styles.panel, styles.panelOutlined)} aria-labelledby="apply-cta">
+            <div className={styles.panelHead}>
+              <div>
+                <span className={cn(styles.tag)} lang="en">Apply</span>
+                <h2 id="apply-cta">지원하기</h2>
+                <p>
+                  {canApply
+                    ? "아래 버튼을 눌러 지원서를 작성할 수 있습니다."
+                    : !recruitment.active
+                      ? "이 모집은 관리자에 의해 비활성화되었습니다."
+                      : status === "모집 예정"
+                        ? "모집 시작 후 신청할 수 있습니다."
+                        : "모집이 마감되었습니다."}
+                </p>
               </div>
-            )}
-
-            {/* Primary CTA */}
-            <div className="space-y-3 pt-2">
-              <Button
-                size="lg"
-                className="w-full text-base font-semibold"
-                disabled={!canApply}
-                onClick={handleApply}
-              >
-                지원서 작성하기
-              </Button>
-
-              {/* Secondary Action */}
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full border-foreground/40 text-base font-semibold"
-                onClick={() => router.push("/apply/my")}
-              >
-                <FileText className="mr-2 h-4 w-4" />내 지원서 조회
-              </Button>
+              <div className={styles.deadline}>
+                <span>{status === "모집 예정" ? "모집 시작" : "모집 마감"}</span>
+                <strong>{formatDeadline(status === "모집 예정" ? recruitment.startAt : recruitment.endAt)}</strong>
+              </div>
             </div>
-
-            {!canApply && !recruitment.active && (
-              <p className="text-xs text-center text-muted-foreground pt-2">
-                이 모집은 관리자에 의해 비활성화되었습니다.
-              </p>
-            )}
-          </div>
-
-          {/* SECTION 4: Notice */}
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              <span>안내사항</span>
+            <div className={styles.actions}>
+              {canApply ? (
+                <Link href={formHref} className={styles.button}>지원서 작성하기</Link>
+              ) : (
+                <button type="button" className={styles.button} disabled>지원서 작성하기</button>
+              )}
+              <Link href="/apply/my" className={styles.buttonOutlined}>내 지원서 조회</Link>
             </div>
-            <ul className="text-sm text-muted-foreground space-y-1 pl-6">
+          </section>
+
+          <section className={styles.notice} aria-labelledby="apply-notice">
+            <h2 id="apply-notice">안내사항</h2>
+            <ul>
               <li>지원서는 모집 기간 내에만 제출할 수 있습니다.</li>
+              <li>제출 후 내용 확인 및 수정은 “내 지원서 조회”에서 할 수 있습니다.</li>
               <li>
-                제출 후 내용 확인 및 수정은 &quot;내 지원서 조회&quot; 메뉴를
-                이용해주세요.
+                <span>문의사항은 <a href="mailto:admin@cnu.team">admin@cnu.team</a>으로 보내 주세요.</span>
               </li>
-              <li>문의사항이 있으시면 admin@cnu.team으로 연락해주세요.</li>
             </ul>
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default function ApplyPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ApplySkeleton />}>
       <ApplyPageContent />
     </Suspense>
   );

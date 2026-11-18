@@ -8,7 +8,6 @@ export interface OperationApplicationRequest {
 
 export interface ApplicationRequest {
   recruitmentId: string;
-  formId: string;
   name: string;
   studentId: string;
   major: string;
@@ -25,7 +24,6 @@ export interface ApplicationResponse {
   recruitmentId: string;
   recruitmentTitle: string;
   recruitmentType: RecruitmentType;
-  formId: string;
   formSnapshot: string | Record<string, unknown>;
   name: string;
   studentId: string;

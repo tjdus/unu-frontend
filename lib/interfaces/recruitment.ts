@@ -1,5 +1,5 @@
 import { AuditorDto } from "./auth";
-import { FormResponse } from "./form";
+import { FormSchema, SchemaValue } from "./form-builder";
 import { QuarterResponse } from "./quarter";
 
 export type RecruitmentType = "NEW_MEMBER" | "INTERNAL_OPERATION";
@@ -11,7 +11,8 @@ export interface RecruitmentRequest {
   startAt: string;
   endAt: string;
   quarterId: string;
-  formId: string;
+  /** The application form's questions; the recruitment owns them. */
+  questions: FormSchema;
   active: boolean;
   type: RecruitmentType;
 }
@@ -26,7 +27,7 @@ export interface RecruitmentResponse {
   quarter: QuarterResponse;
   active: boolean;
   type: RecruitmentType;
-  form: FormResponse;
+  questions: SchemaValue;
   createdAt: string;
   modifiedAt: string;
   createdBy: AuditorDto;

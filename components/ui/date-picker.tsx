@@ -107,7 +107,8 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-0"
+        // Still scrolls when the screen is short, but without the (app-green) scrollbar.
+        className="w-80 max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         align="start"
         collisionPadding={8}
       >

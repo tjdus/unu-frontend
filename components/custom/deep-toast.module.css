@@ -1,0 +1,37 @@
+/* Snackbar for the public deep-green pages (apply, About): M3 snackbar placement and size,
+   in the same light surface as the confirm dialog. Rendered by sonner with `unstyled`, so every
+   visual property is set here. */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #eef6e8;
+  color: #14231b;
+  font-family: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  box-shadow: 0 12px 32px -12px rgb(4 28 16 / 0.5), 0 0 0 1px rgb(16 96 63 / 0.08);
+}
+
+.title {
+  font-weight: 400;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.success .icon { color: #10603f; }
+.error .icon { color: #b3261e; }
