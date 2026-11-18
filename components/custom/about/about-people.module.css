@@ -1,0 +1,170 @@
+.peopleLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 514px) minmax(0, 352px);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(40px, 7vw, 96px);
+  max-width: 962px;
+  margin-inline: auto;
+}
+
+.ringStage {
+  --ring-line: #b4d6bd;
+  --ring-highlight: #cef4d6;
+  position: relative;
+  width: 100%;
+  pointer-events: none;
+}
+
+.ringCanvas,
+.ringSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ringStage[data-renderer="webgl"] .ringFallback {
+  visibility: hidden;
+}
+
+.ringFallback {
+  fill: none;
+  stroke: var(--ring-line);
+  stroke-width: 1;
+}
+
+.ringFallback polygon[data-selected="true"] {
+  stroke: var(--ring-highlight);
+}
+
+.ringMarker {
+  font-family: var(--font-google-sans-flex), sans-serif;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ring-highlight);
+  animation: appear 260ms ease-out both;
+}
+
+.directory {
+  display: grid;
+  grid-template-columns: minmax(85px, 104px) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  min-width: 0;
+}
+
+.years {
+  display: grid;
+  gap: 4px;
+}
+
+.year {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--deep-muted);
+  font-family: var(--font-google-sans-flex), sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: color 220ms ease-out;
+}
+
+.year:hover,
+.year:focus-visible,
+.year[aria-selected="true"] {
+  color: var(--deep-accent);
+}
+
+.year:focus-visible,
+.rosterPanel:focus-visible {
+  outline: 2px solid var(--deep-accent);
+  outline-offset: 3px;
+}
+
+.rosterArea {
+  min-width: 0;
+}
+
+.rosterPanel:not([hidden]) {
+  animation: revealRoster 220ms ease-out both;
+}
+
+.roster {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+}
+
+.roster dt {
+  margin-block-end: 6px;
+  color: var(--deep-muted);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.roster dd {
+  margin: 0;
+  color: var(--deep-on);
+  font-size: 25px;
+  font-weight: 350;
+  line-height: 1.25;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@keyframes appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes revealRoster {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 850px) {
+  .peopleLayout {
+    grid-template-columns: minmax(0, 390px);
+    justify-items: center;
+    gap: 24px;
+  }
+
+  .directory {
+    width: 100%;
+    max-width: 284px;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: min(12vw, 46px);
+  }
+
+  .year {
+    font-size: 22px;
+  }
+
+  .roster {
+    gap: 18px;
+  }
+
+  .roster dt {
+    font-size: 12px;
+  }
+
+  .roster dd {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringMarker,
+  .year,
+  .rosterPanel:not([hidden]) {
+    animation: none;
+    transition: none;
+  }
+}

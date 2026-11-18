@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { onHomeHeroReady } from "./home-hero-ready";
 import styles from "./home-entrance.module.css";
 
 export const HOME_ENTRANCE_COMPLETE = "home-entrance-complete";
 const MIN_DRAW_MS = 500;
 const LOGO_FINISH_MS = 140;
+// The screen also waits for the hero's 3D scene to draw its first frame, but never longer
+// than this (counted from the start of the page) — no WebGL / a very slow device still gets in.
+const MAX_WAIT_MS = 3000;
 
 export function HomeEntrance() {
   const screenRef = useRef<HTMLDivElement>(null);
@@ -21,6 +25,8 @@ export function HomeEntrance() {
     let frame = 0;
     let releaseTimer: number | undefined;
     let finishTimer: number | undefined;
+    let capTimer: number | undefined;
+    let stopHeroWait = () => {};
 
     const finish = () => {
       if (disposed || screen.dataset.phase === "done") return;
@@ -60,10 +66,15 @@ export function HomeEntrance() {
       }, LOGO_FINISH_MS);
     };
 
+    // Time since the splash started, read once: its CSS leave timer is switched off below.
+    const splashStart = screen.getAnimations()[0]?.currentTime;
+    const mountedAt = performance.now();
+    const splashElapsed = () =>
+      (typeof splashStart === "number" ? splashStart : 0) + (performance.now() - mountedAt);
+
     const scheduleRelease = () => {
       if (disposed || reduced.matches || screen.dataset.phase === "done") return;
-      const elapsed = screen.getAnimations()[0]?.currentTime;
-      const wait = Math.max(0, MIN_DRAW_MS - (typeof elapsed === "number" ? elapsed : 0));
+      const wait = Math.max(0, MIN_DRAW_MS - splashElapsed());
       if (wait > 0) releaseTimer = window.setTimeout(release, wait);
       else release();
     };
@@ -80,8 +91,19 @@ export function HomeEntrance() {
     home.addEventListener("focusin", finish);
     reduced.addEventListener("change", finish);
     window.addEventListener("hashchange", finish);
+
+    // Without JS the CSS leave timer dismisses the screen on its own; with JS it waits for
+    // the fonts and the hero's first 3D frame instead, so hold that timer.
+    if (!reduced.matches && Number(getComputedStyle(screen).opacity) >= 0.98) {
+      screen.dataset.phase = "waiting";
+    }
+    const heroReady = new Promise<void>((resolve) => {
+      stopHeroWait = onHomeHeroReady(resolve);
+      capTimer = window.setTimeout(resolve, Math.max(0, MAX_WAIT_MS - splashElapsed()));
+    });
+    const fontsReady = document.fonts.ready.then(() => undefined, () => undefined);
     frame = window.requestAnimationFrame(() => {
-      void document.fonts.ready.then(scheduleRelease, scheduleRelease);
+      void Promise.all([fontsReady, heroReady]).then(scheduleRelease);
     });
 
     return () => {
@@ -89,6 +111,8 @@ export function HomeEntrance() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(releaseTimer);
       window.clearTimeout(finishTimer);
+      window.clearTimeout(capTimer);
+      stopHeroWait();
       screen.removeEventListener("animationend", onAnimationEnd);
       home.removeEventListener("focusin", finish);
       reduced.removeEventListener("change", finish);

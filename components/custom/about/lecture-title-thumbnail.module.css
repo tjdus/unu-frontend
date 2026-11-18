@@ -1,0 +1,47 @@
+.art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+  color: var(--deep-on);
+  font-family: var(--font-google-sans-flex), var(--font-noto-sans-kr), sans-serif;
+  user-select: none;
+}
+
+.art:lang(ko) {
+  font-family: var(--font-noto-sans-kr), var(--font-google-sans-flex), sans-serif;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.fallback {
+  display: -webkit-box;
+  max-width: 82%;
+  overflow: hidden;
+  font-size: min(21cqi, 108px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: -1px 1px #679c7b, -2px 2px #679c7b, -3px 3px #679c7b, -4px 4px #5f9373, 0 12px 22px rgb(4 28 16 / 32%);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.art[data-renderer="webgl"] .fallback {
+  visibility: hidden;
+}
+
+.art[data-renderer="webgl"] .canvas {
+  visibility: visible;
+}

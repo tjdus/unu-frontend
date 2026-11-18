@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import styles from "./blog-book-thumbnail.module.css";
+import { holdPageLoad } from "../page-load-hold";
 
 /**
  * Blog thumbnail: a floating open booklet whose pages keep turning, right to left.
@@ -72,7 +73,13 @@ function makePage() {
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 
-type Row = { canvas: HTMLCanvasElement; phase: number; visible: boolean };
+type Row = {
+  canvas: HTMLCanvasElement;
+  phase: number;
+  visible: boolean;
+  drawn?: boolean;
+  releaseLoad?: () => void;
+};
 type Stage = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -255,6 +262,12 @@ function loop(now: number) {
     if (!row.visible) continue;
     any = true;
     renderRow(stage, row, t);
+    // First frame on screen: let the page loading screen go.
+    if (row.releaseLoad && row.canvas.clientWidth) {
+      row.releaseLoad();
+      row.releaseLoad = undefined;
+      row.drawn = true;
+    }
   }
   if (any && !still) frame = requestAnimationFrame(loop);
 }
@@ -302,11 +315,14 @@ export function BlogBookStage({ seed }: { seed: string }) {
     register(row);
     const observer = new IntersectionObserver(([entry]) => {
       row.visible = entry.isIntersecting;
+      // Seen before its first frame: hold the page loading screen until it is drawn.
+      if (row.visible && !row.drawn) row.releaseLoad ??= holdPageLoad();
       if (row.visible) kick();
     }, { rootMargin: "100px" });
     observer.observe(canvas);
     return () => {
       observer.disconnect();
+      row.releaseLoad?.();
       unregister(row);
     };
   }, [seed]);

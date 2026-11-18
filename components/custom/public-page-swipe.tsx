@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { LOADING_ATTR } from "./page-loading-screen";
 
 const PUBLIC_PAGE_ORDER = ["", "about", "portfolio", "blog"];
 
@@ -31,6 +32,8 @@ export function PublicPageSwipe({ children }: { children: ReactNode }) {
     const element = surface.current;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (!element?.animate || reducedMotion.matches) return;
+    // A page that opens behind its loading screen doesn't swipe in as well.
+    if (document.documentElement.hasAttribute(LOADING_ATTR)) return;
 
     // Animate the committed page regardless of how Next.js got there.
     const root = document.documentElement;

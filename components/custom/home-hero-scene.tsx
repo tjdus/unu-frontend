@@ -18,6 +18,7 @@ import {
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { HOME_ENTRANCE_COMPLETE } from "./home-entrance";
+import { markHomeHeroReady } from "./home-hero-ready";
 
 type PointerState = {
   active: boolean;
@@ -304,6 +305,30 @@ function CameraRig({ offsetY }: { offsetY: number }) {
     camera.position.y = offsetY;
     camera.updateMatrixWorld();
   }, -1);
+
+  return null;
+}
+
+/**
+ * Mounted inside the Suspense boundary, so it only runs once physics (wasm) and the cubes are
+ * in. Shaders are compiled up front, then the hero counts as ready after a frame has really
+ * been drawn — the entrance screen waits for this.
+ */
+function HeroReadySignal() {
+  const { gl, scene, camera, invalidate } = useThree();
+  const frames = useRef(0);
+
+  useEffect(() => {
+    gl.compile(scene, camera);
+    invalidate();
+  }, [gl, scene, camera, invalidate]);
+
+  useFrame(() => {
+    frames.current += 1;
+    // This callback runs before a frame renders: on the second call the first is on screen.
+    if (frames.current === 2) markHomeHeroReady();
+    else if (frames.current === 1) invalidate(); // on-demand loop: make sure there is a next frame
+  });
 
   return null;
 }
@@ -1195,6 +1220,7 @@ export function HomeHeroScene() {
             anchorFontSizePx={anchorFontSizePx}
             bounds={arenaBounds}
           />
+          <HeroReadySignal />
         </Suspense>
       </Canvas>
     </div>

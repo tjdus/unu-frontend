@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import styles from "./work-star-thumbnail.module.css";
+import { holdPageLoad } from "../page-load-hold";
 
 /**
  * Work thumbnail: a four-pointed star with creased, concave faces and a thin orbit ring
@@ -68,6 +69,8 @@ type Card = {
   color: THREE.Color;
   phase: number;
   visible: boolean;
+  drawn?: boolean;
+  releaseLoad?: () => void;
 };
 
 type Stage = {
@@ -195,6 +198,12 @@ function loop(now: number) {
     if (!card.visible) continue;
     any = true;
     renderCard(stage, card, t);
+    // First frame on screen: let the page loading screen go.
+    if (card.releaseLoad && card.canvas.clientWidth) {
+      card.releaseLoad();
+      card.releaseLoad = undefined;
+      card.drawn = true;
+    }
   }
   if (any && !reducedMotion()) frame = requestAnimationFrame(loop);
 }
@@ -239,11 +248,14 @@ export function WorkStarThumbnail({ index = 0 }: { index?: number }) {
     register(card);
     const observer = new IntersectionObserver(([entry]) => {
       card.visible = entry.isIntersecting;
+      // Seen before its first frame: hold the page loading screen until it is drawn.
+      if (card.visible && !card.drawn) card.releaseLoad ??= holdPageLoad();
       if (card.visible) kick();
     }, { rootMargin: "100px" });
     observer.observe(canvas);
     return () => {
       observer.disconnect();
+      card.releaseLoad?.();
       unregister(card);
     };
   }, [index]);

@@ -3,7 +3,7 @@
 import axios from "axios";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AboutSectionInfo } from "@/lib/about-sections";
@@ -106,10 +106,6 @@ export function AboutExampleEditor({
       toast.error("설명을 입력해 주세요.");
       return;
     }
-    if (!thumbnailUrl) {
-      toast.error("대표 이미지를 등록해 주세요.");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -138,6 +134,15 @@ export function AboutExampleEditor({
   };
 
   const pickFile = () => fileInputRef.current?.click();
+
+  // The image is optional. Removing one uploaded in this visit deletes it right away; a
+  // previously saved image is deleted on the server when the post is saved without it.
+  const removeImage = () => {
+    const pendingId = pendingImageIdRef.current;
+    pendingImageIdRef.current = null;
+    if (pendingId) void deleteImage(pendingId).catch(() => {});
+    setThumbnailUrl("");
+  };
 
   const dropProps = {
     onDragOver: (event: React.DragEvent) => {
@@ -196,7 +201,7 @@ export function AboutExampleEditor({
 
           <div className={styles.field}>
             <span id="about-example-image" className={styles.label}>
-              대표 이미지
+              대표 이미지 <span className={styles.optional}>(선택)</span>
             </span>
             <input
               ref={fileInputRef}
@@ -207,13 +212,25 @@ export function AboutExampleEditor({
               onChange={handleImageChange}
             />
             {thumbnailUrl ? (
-              <button type="button" onClick={pickFile} className={styles.preview} {...dropProps}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={thumbnailUrl} alt="대표 이미지 미리보기" />
-                <span className={styles.previewLabel}>
-                  {uploading ? "업로드 중..." : "이미지 변경"}
-                </span>
-              </button>
+              <div className={styles.previewWrap}>
+                <button type="button" onClick={pickFile} className={styles.preview} {...dropProps}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbnailUrl} alt="대표 이미지 미리보기" />
+                  <span className={styles.previewLabel}>
+                    {uploading ? "업로드 중..." : "이미지 변경"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  disabled={uploading}
+                  className={styles.remove}
+                  aria-label="대표 이미지 삭제"
+                  title="대표 이미지 삭제"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              </div>
             ) : (
               <button type="button" onClick={pickFile} className={styles.upload} {...dropProps}>
                 <span className={styles.uploadText}>

@@ -273,81 +273,9 @@
   text-transform: uppercase;
 }
 
-.peopleHeading p,
-.peopleTable thead {
-  color: var(--deep-muted);
-}
-
 .peopleHeading p {
+  color: var(--deep-muted);
   font-size: 16px;
-}
-
-.peopleTable {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.peopleTable th,
-.peopleTable td {
-  padding-inline-end: 12px;
-  font-weight: inherit;
-}
-
-.peopleTable tr {
-  background: url("/about-dial/line1.svg") no-repeat left bottom / 100% 1px;
-}
-
-.peopleTable thead tr {
-  background-image: url("/about-dial/line.svg");
-}
-
-.peopleTable thead th {
-  padding-bottom: 16px;
-  font-size: 13px;
-  text-transform: uppercase;
-}
-
-.peopleTable thead th:first-child {
-  width: 16.5%;
-}
-
-.peopleTable tbody th {
-  padding-block: 26px;
-  font-family: var(--font-google-sans-flex), sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-}
-
-.peopleTable td {
-  font-size: 20px;
-  font-weight: 300;
-  word-break: keep-all;
-}
-
-.peopleName {
-  display: inline-block;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .peopleTable tbody tr {
-    transition: background-color 240ms ease-out;
-  }
-
-  .peopleName {
-    transition: color 240ms ease-out, transform 320ms cubic-bezier(0.2, 0.7, 0.25, 1);
-  }
-
-  .peopleTable tbody tr:hover {
-    background-color: color-mix(in srgb, var(--deep-accent) 13%, transparent);
-  }
-
-  .peopleTable tbody tr:hover .peopleName {
-    color: var(--deep-accent);
-    transform: translateX(8px);
-  }
 }
 
 @media (max-width: 1150px) {
@@ -399,8 +327,6 @@
   .peopleHeading { margin-bottom: 28px; }
   .peopleHeading h2 { font-size: 60px; }
   .peopleHeading p { font-size: 14px; }
-  .peopleTable tbody th { padding-block: 19px; font-size: 14px; }
-  .peopleTable td { font-size: 15px; }
 }
 
 @media (max-width: 370px) {
@@ -416,9 +342,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .navLinks a,
-  .navLogin,
-  .peopleTable tbody tr,
-  .peopleName { transition: none; }
-
-  .peopleTable tbody tr:hover .peopleName { transform: none; }
+  .navLogin { transition: none; }
 }

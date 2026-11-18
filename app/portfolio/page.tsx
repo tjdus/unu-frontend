@@ -1,5 +1,7 @@
 "use client";
 
+import { PageLoadingScreen } from "@/components/custom/page-loading-screen";
+import { PageLoadHold } from "@/components/custom/page-load-hold";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EditorialHero, EditorialMedia } from "@/components/custom/editorial";
@@ -17,7 +19,8 @@ import { cn } from "@/lib/utils";
 // 3D star thumbnail (three.js) loads in the browser only.
 const WorkStarThumbnail = dynamic(
   () => import("@/components/custom/portfolio/work-star-thumbnail").then((module) => module.WorkStarThumbnail),
-  { ssr: false },
+  // Hold the page loading screen while the three.js chunk downloads.
+  { ssr: false, loading: PageLoadHold },
 );
 
 function WorkCard({ item, index }: { item: PortfolioResponse; index: number }) {
@@ -64,6 +67,7 @@ export default function PortfolioPage() {
 
   return (
     <main className={styles.page}>
+      <PageLoadingScreen busy={loading} />
       <EditorialHero title="Work" action={
         hasRole("MANAGER") && (
           <Button asChild size="sm" className={styles.action}>

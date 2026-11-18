@@ -233,6 +233,11 @@
   object-fit: cover;
 }
 
+.lecturePhoto {
+  border: 0;
+  background: transparent;
+}
+
 .cardHead {
   display: flex;
   align-items: flex-start;
@@ -375,30 +380,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Cards (useRevealOnView): the photo opens upward, then the text settles in.
-   The right column follows the left by a beat (--col). */
-.grid[data-reveal] .card .photo {
-  clip-path: inset(100% 0 0 0);
-}
-
-.grid[data-reveal] .card .text {
-  opacity: 0;
-  transform: translateY(12px);
-}
-
-.grid[data-reveal] .card[data-in] .photo {
-  clip-path: inset(0 0 0 0);
-  transition: clip-path 1000ms cubic-bezier(0.65, 0, 0.35, 1) calc(var(--col, 0) * 90ms);
-}
-
-.grid[data-reveal] .card[data-in] .text {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 700ms ease calc(var(--col, 0) * 90ms + 280ms),
-    transform 900ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--col, 0) * 90ms + 280ms);
 }
 
 @media (prefers-reduced-motion: reduce) {

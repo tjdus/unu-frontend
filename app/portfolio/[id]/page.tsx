@@ -71,7 +71,7 @@ function PortfolioDetail({ id }: { id: string }) {
         <div className={cn(styles.shell, styles.projectHead)}>
           <EditorialBackLink href="/portfolio">Work</EditorialBackLink>
           {loading ? (
-            <div className={cn(styles.media, styles.cover, styles.skeleton, "animate-pulse")} role="status" aria-label="불러오는 중" />
+            <div className={cn(styles.media, styles.cover, styles.projectContent, styles.skeleton, "animate-pulse")} role="status" aria-label="불러오는 중" />
           ) : <p className={styles.status}>포트폴리오를 찾을 수 없습니다.</p>}
         </div>
       </main>
@@ -126,21 +126,20 @@ function PortfolioDetail({ id }: { id: string }) {
         </dl>
       </header>
       <div className={styles.shell}>
-        <EditorialMedia src={portfolio.thumbnailUrl} alt={portfolio.title} className={styles.cover} />
-        <section className={styles.projectSection} aria-labelledby="overview">
-          <h2 id="overview">OVERVIEW</h2>
-          <article className={styles.markdown}>
+        <div className={styles.projectContent}>
+          <EditorialMedia src={portfolio.thumbnailUrl} alt={portfolio.title} className={styles.cover} />
+          <section className={styles.teamSection} aria-labelledby="project-team">
+            <h2 id="project-team">TEAM</h2>
+            <ul className={styles.teamList}>
+              {portfolio.contributors.length ? portfolio.contributors.map(({ id, name, role }) => (
+                <li key={id}><span>{name}</span><span>{role || "—"}</span></li>
+              )) : <li><span>등록된 참여자가 없습니다.</span></li>}
+            </ul>
+          </section>
+          <article className={cn(styles.markdown, styles.projectBody)} aria-label="프로젝트 본문">
             <MarkdownPreview content={portfolio.description} hiddenImageUrl={portfolio.thumbnailUrl || undefined} />
           </article>
-        </section>
-        <section className={cn(styles.projectSection, styles.teamSection)} aria-labelledby="project-team">
-          <h2 id="project-team">TEAM</h2>
-          <ul className={styles.teamList}>
-            {portfolio.contributors.length ? portfolio.contributors.map(({ id, name, role }) => (
-              <li key={id}><span>{name}</span><span>{role || "—"}</span></li>
-            )) : <li><span>등록된 참여자가 없습니다.</span></li>}
-          </ul>
-        </section>
+        </div>
       </div>
       <EditorialDivider />
       {nextProject ? (

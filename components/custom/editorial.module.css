@@ -133,10 +133,10 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
 .projectTitle { font-size: 120px; font-weight: 300; line-height: 1; overflow-wrap: anywhere; }
 .projectMeta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding-top: 20px; border-top: 1px solid var(--deep-outline); }
 .projectMeta dd { margin-top: 7px; font-size: 20px; overflow-wrap: anywhere; }
+.projectContent { width: 100%; max-width: 1120px; margin-inline: auto; }
 .cover { aspect-ratio: 16 / 9; background: #0d5638; }
-.projectSection { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 80px; padding-top: 120px; }
-.projectSection h2 { font-size: 48px; font-weight: 300; line-height: 1.05; }
-.teamSection { padding-block: 96px 120px; }
+.teamSection { display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: clamp(32px, 5.56vw, 80px); padding-top: 88px; }
+.teamSection h2 { font-size: 48px; font-weight: 300; line-height: 1.25; }
 .teamList { min-width: 0; }
 .teamList li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-block: 20px; font-size: 20px; overflow-wrap: anywhere; background: url("/editorial/team-rule.svg") no-repeat left bottom / 100% 1px; }
 .teamList li:first-child { background-image: url("/editorial/team-rule.svg"), url("/editorial/team-rule.svg"); background-position: left top, left bottom; background-size: 100% 1px, 100% 1px; }
@@ -165,6 +165,9 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
 .markdown pre code { padding: 0; background: transparent; }
 .markdown blockquote { border-color: var(--deep-outline); color: var(--deep-muted); }
 .markdown :is(hr, th, td) { border-color: var(--deep-outline); }
+.projectBody { padding-block: 96px 112px; color: var(--deep-on); font-family: var(--font-noto-sans-kr), sans-serif; }
+.projectBody :is(p, li) { text-align: justify; line-height: 1.8; }
+.projectBody > :last-child { margin-block-end: 0; }
 .morePosts { padding-block: 96px 120px; }
 .moreHeading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: end; margin-bottom: 32px; }
 .moreHeading h2 { font-size: 72px; font-weight: 300; line-height: 1; text-transform: uppercase; }
@@ -190,7 +193,6 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .projectTitle { font-size: 88px; }
   .blogRow { gap: 28px; }
   .blogText h2 { font-size: 36px; }
-  .projectSection { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 40px; }
 }
 
 @media (max-width: 899px) {
@@ -202,8 +204,8 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .byline { display: flex; justify-items: start; align-items: baseline; flex-wrap: wrap; text-align: left; max-width: none; }
   .blogText h2, .blogRowCompact .blogText h3 { font-size: 28px; }
   .blogText p { font-size: 17px; }
-  .projectSection { padding-top: 72px; }
-  .teamSection { padding-bottom: 76px; }
+  .teamSection { padding-top: 64px; }
+  .projectBody { padding-block: 72px 76px; }
   .loginBody { grid-template-columns: 1fr; }
   .loginPanel { max-width: 440px; }
 }
@@ -229,8 +231,9 @@ button.chip:is(:hover, [aria-pressed="true"]) { background: var(--deep-on); bord
   .projectTitle { font-size: 48px; }
   .projectMeta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .projectMeta dd { font-size: 16px; }
-  .projectSection { grid-template-columns: 1fr; gap: 16px; padding-top: 48px; }
-  .projectSection h2 { font-size: 34px; }
+  .teamSection { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 48px; }
+  .teamSection h2 { font-size: 34px; }
+  .projectBody { padding-block: 48px 64px; }
   .teamList li { font-size: 16px; }
   .nextProject { padding-block: 44px; }
   .nextProject strong { font-size: 38px; }

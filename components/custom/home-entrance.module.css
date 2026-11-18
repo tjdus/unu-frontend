@@ -18,6 +18,11 @@
   animation: leave 140ms ease-out var(--home-entrance-delay) forwards;
 }
 
+/* JS is in charge: stay up until the fonts and the hero's first 3D frame are ready. */
+.screen[data-phase="waiting"] {
+  animation: none;
+}
+
 .screen[data-phase="leaving"] {
   animation: leave 140ms ease-out forwards;
 }

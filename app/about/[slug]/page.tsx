@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { ABOUT_INFO_GROUPS, getAboutSection } from "@/lib/about-sections";
 import { AboutExample } from "@/lib/interfaces/about-example";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { LectureTitleThumbnail } from "@/components/custom/about/lecture-title-thumbnail";
 import { HomeScrollDivider } from "@/components/custom/home-scroll-divider";
 import aboutStyles from "../about.module.css";
 import styles from "./detail.module.css";
@@ -28,39 +29,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-/**
- * Minimal card entrance: once a card scrolls into view its photo opens upward and its
- * text settles in (styles: [data-reveal] / [data-in] in detail.module.css). Without JS,
- * or with reduced motion, cards simply show.
- */
-function useRevealOnView(ref: RefObject<HTMLElement | null>, items: unknown[]) {
-  useEffect(() => {
-    const grid = ref.current;
-    if (!grid || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const cards = Array.from(grid.children) as HTMLElement[];
-    const pending = cards.filter((card) => !card.hasAttribute("data-in"));
-    if (!pending.length) return;
-    grid.dataset.reveal = "";
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          (entry.target as HTMLElement).dataset.in = "";
-          observer.unobserve(entry.target);
-        }
-      },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.2 },
-    );
-    pending.forEach((card) => observer.observe(card));
-    return () => observer.disconnect();
-  }, [ref, items]);
-}
+const lecturePreviews: AboutExample[] = process.env.NODE_ENV === "development" ? [
+  { id: "preview-lecture-django", title: "Django", description: "Django로 URL, 뷰, 모델을 연결해 웹 앱을 만듭니다." },
+  { id: "preview-lecture-web", title: "웹 입문", description: "HTML, CSS, JavaScript로 첫 웹 페이지를 만듭니다." },
+  { id: "preview-lecture-spring", title: "Spring", description: "Spring Boot로 API를 만들고 요청에서 데이터 저장까지 이어 봅니다." },
+  { id: "preview-lecture-security", title: "웹 보안", description: "웹의 주요 취약점을 실습하고 애플리케이션을 보호하는 방법을 배웁니다." },
+].map((example) => ({ ...example, category: "LECTURE", thumbnailUrl: "", createdAt: "", modifiedAt: null })) : [];
+
+const TITLE_THUMBNAIL_CATEGORIES = new Set(["LECTURE", "STUDY", "PROJECT", "MENTORING", "NETWORKING"]);
 
 export default function AboutSectionDetailPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const { hasRole } = useAuth();
   const section = getAboutSection(params.slug);
+  const isLecture = section?.category === "LECTURE";
+  // Activity pages show each card's title as a 3D lettering thumbnail instead of a photo.
+  const usesTitleThumbnail = !!section && TITLE_THUMBNAIL_CATEGORIES.has(section.category);
   const [examples, setExamples] = useState<AboutExample[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<AboutExample | null>(null);
@@ -68,8 +53,10 @@ export default function AboutSectionDetailPage() {
   const dragIndex = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
-  const gridRef = useRef<HTMLDivElement>(null);
-  useRevealOnView(gridRef, examples);
+  const displayedExamples = useMemo(
+    () => isLecture && lecturePreviews.length ? [...examples, ...lecturePreviews] : examples,
+    [examples, isLecture],
+  );
 
   const loadExamples = useCallback(async () => {
     if (!section) return;
@@ -221,80 +208,84 @@ export default function AboutSectionDetailPage() {
                 <div key={item} className={styles.skeleton} />
               ))}
             </div>
-          ) : examples.length === 0 ? (
+          ) : displayedExamples.length === 0 ? (
             <p className={styles.empty}>아직 등록된 내용이 없습니다.</p>
           ) : (
-            <div ref={gridRef} className={cn(styles.grid, savingOrder && styles.saving)}>
-              {examples.map((example, index) => (
-                <article
-                  key={example.id}
-                  className={styles.card}
-                  style={{ "--col": index % 2 } as CSSProperties}
-                  data-drop-target={
-                    canManage && dragOverIndex === index && dragIndex.current !== null
-                      ? ""
-                      : undefined
-                  }
-                  data-dragging={canManage && dragIndex.current === index ? "" : undefined}
-                  onDragEnter={canManage ? () => handleDragEnterItem(index) : undefined}
-                  onDragOver={canManage ? (event) => event.preventDefault() : undefined}
-                  onDrop={
-                    canManage
-                      ? (event) => {
-                          event.preventDefault();
-                          handleDropItem(index);
-                        }
-                      : undefined
-                  }
-                  onDragEnd={canManage ? handleDragEnd : undefined}
-                >
-                  <div className={styles.photo}>
-                    {example.thumbnailUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={example.thumbnailUrl} alt={example.title} draggable={false} />
-                    )}
-                  </div>
-                  <div className={styles.text}>
-                  <div className={styles.cardHead}>
-                    <h3>{example.title}</h3>
-                    {canManage && (
-                      <div className={styles.cardTools}>
-                        <span
-                          role="button"
-                          tabIndex={-1}
-                          aria-label={`${example.title} 순서 변경 손잡이`}
-                          title="드래그하여 순서 변경"
-                          draggable={!savingOrder}
-                          onDragStart={() => handleDragStart(index)}
-                          onDragEnd={handleDragEnd}
-                          className={cn(styles.iconButton, styles.handle)}
-                        >
-                          <GripVertical className="size-4" />
-                        </span>
-                        <Link
-                          href={`/about/${section.slug}/${example.id}/edit`}
-                          title="수정"
-                          aria-label={`${example.title} 수정`}
-                          className={styles.iconButton}
-                        >
-                          <Pencil className="size-4" />
-                        </Link>
-                        <button
-                          type="button"
-                          title="삭제"
-                          aria-label={`${example.title} 삭제`}
-                          className={styles.iconButton}
-                          onClick={() => setDeleting(example)}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+            <div className={cn(styles.grid, savingOrder && styles.saving)}>
+              {displayedExamples.map((example, index) => {
+                const canManageExample = canManage && index < examples.length;
+                return (
+                  <article
+                    key={example.id}
+                    className={styles.card}
+                    data-drop-target={
+                      canManageExample && dragOverIndex === index && dragIndex.current !== null
+                        ? ""
+                        : undefined
+                    }
+                    data-dragging={canManageExample && dragIndex.current === index ? "" : undefined}
+                    onDragEnter={canManageExample ? () => handleDragEnterItem(index) : undefined}
+                    onDragOver={canManageExample ? (event) => event.preventDefault() : undefined}
+                    onDrop={
+                      canManageExample
+                        ? (event) => {
+                            event.preventDefault();
+                            handleDropItem(index);
+                          }
+                        : undefined
+                    }
+                    onDragEnd={canManageExample ? handleDragEnd : undefined}
+                  >
+                    <div className={cn(styles.photo, usesTitleThumbnail && styles.lecturePhoto)}>
+                      {usesTitleThumbnail ? (
+                        <LectureTitleThumbnail title={example.title} />
+                      ) : example.thumbnailUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={example.thumbnailUrl} alt={example.title} draggable={false} />
+                      )}
+                    </div>
+                    <div className={styles.text}>
+                      <div className={styles.cardHead}>
+                        <h3>{example.title}</h3>
+                        {canManageExample && (
+                          <div className={styles.cardTools}>
+                            <span
+                              role="button"
+                              tabIndex={-1}
+                              aria-label={`${example.title} 순서 변경 손잡이`}
+                              title="드래그하여 순서 변경"
+                              draggable={!savingOrder}
+                              onDragStart={() => handleDragStart(index)}
+                              onDragEnd={handleDragEnd}
+                              className={cn(styles.iconButton, styles.handle)}
+                            >
+                              <GripVertical className="size-4" />
+                            </span>
+                            <Link
+                              href={`/about/${section.slug}/${example.id}/edit`}
+                              title="수정"
+                              aria-label={`${example.title} 수정`}
+                              className={styles.iconButton}
+                            >
+                              <Pencil className="size-4" />
+                            </Link>
+                            <button
+                              type="button"
+                              title="삭제"
+                              aria-label={`${example.title} 삭제`}
+                              className={styles.iconButton}
+                              onClick={() => setDeleting(example)}
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                    <p>{example.description}</p>
-                  </div>
-                </article>
-              ))}
+                      <p>{example.description}</p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

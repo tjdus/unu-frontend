@@ -1,0 +1,37 @@
+/* Same look as the home entrance screen (logo styles come from home-entrance.module.css). */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  touch-action: none;
+  /* No-JS fallback: leave on its own. */
+  animation: leave 160ms ease-out 3s forwards;
+}
+
+/* JS is in charge: stay up until the page is ready. */
+.screen[data-phase="waiting"] {
+  animation: none;
+}
+
+.screen[data-phase="leaving"] {
+  animation: leave 160ms ease-out forwards;
+}
+
+.screen[data-phase="done"] {
+  display: none;
+}
+
+@keyframes leave {
+  from { opacity: 1; visibility: visible; }
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    display: none;
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLoadingScreen } from "@/components/custom/page-loading-screen";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { EditorialHero, EditorialPagination } from "@/components/custom/editorial";
@@ -54,6 +55,7 @@ export default function BlogPage() {
 
   return (
     <main className={styles.page}>
+      <PageLoadingScreen busy={loading} />
       <EditorialHero title="Blog" action={
         hasAnyRole(["ADMIN", "MANAGER", "BLOG_MANAGER"]) && (
           <Button asChild size="sm" className={styles.action}>

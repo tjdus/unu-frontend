@@ -1,11 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { PageLoadHold } from "../page-load-hold";
 import styles from "./blog-book-thumbnail.module.css";
 
 // The booklet (three.js) loads in the browser only; rows render server-side without it.
 const BlogBookStage = dynamic(() => import("./blog-book-stage").then((module) => module.BlogBookStage), {
   ssr: false,
+  // Hold the page loading screen while the three.js chunk downloads.
+  loading: PageLoadHold,
 });
 
 /** Blog post thumbnail: a floating open booklet with turning pages (see blog-book-stage). */

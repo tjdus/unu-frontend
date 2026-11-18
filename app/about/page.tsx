@@ -1,5 +1,6 @@
 import { AboutActivityDial } from "@/components/custom/about/about-activity-dial";
 import { HomeScrollDivider } from "@/components/custom/home-scroll-divider";
+import { AboutPeople } from "@/components/custom/about/about-people";
 import { ABOUT_SECTIONS } from "@/lib/about-sections";
 import styles from "./about.module.css";
 
@@ -11,12 +12,6 @@ const EXECUTIVES = [
   { year: "2022", president: "남정연", vicePresident: "박준서", treasurer: "강승묵" },
   { year: "2021", president: "이동주", vicePresident: "", treasurer: "" },
 ];
-
-const EXECUTIVE_ROLES = [
-  { key: "president", label: "학회장" },
-  { key: "vicePresident", label: "부학회장" },
-  { key: "treasurer", label: "총무" },
-] as const;
 
 function AboutDivider() {
   return (
@@ -50,30 +45,7 @@ export default function AboutPage() {
           <h2 id="people-title">People</h2>
           <p>역대 운영진</p>
         </div>
-        <table className={styles.peopleTable} aria-label="역대 운영진">
-          <thead>
-            <tr>
-              <th scope="col" lang="en">Year</th>
-              {EXECUTIVE_ROLES.map((role) => (
-                <th key={role.key} scope="col">{role.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {EXECUTIVES.map((executive) => (
-              <tr key={executive.year}>
-                <th scope="row">{executive.year}</th>
-                {EXECUTIVE_ROLES.map((role) => (
-                  <td key={role.key}>
-                    {executive[role.key]
-                      ? <span className={styles.peopleName}>{executive[role.key]}</span>
-                      : "—"}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <AboutPeople executives={EXECUTIVES} />
       </section>
     </main>
   );
