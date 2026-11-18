@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_TONES } from "@/lib/constants/status-badge-tones";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -32,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ApplicationResponse } from "@/lib/interfaces/application";
+import type { SchemaValue } from "@/lib/interfaces/form-builder";
 import {
   deleteApplication,
   importApplicationLectureRoomSchedule,
@@ -39,6 +42,9 @@ import {
 } from "@/lib/api/application";
 import { toast } from "sonner";
 import { CalendarPlus, Loader2, Trash2 } from "lucide-react";
+import ApplicationAnswersTable from "./application-answers-table";
+import { ApplicationEmail } from "./application-email";
+import styles from "./application-table.module.css";
 
 // PASSED/REJECTED 표시 문구는 모집 유형에 따라 달라진다.
 // (INTERNAL_OPERATION: 승인/미승인, 그 외: 합격/불합격). enum 값 자체는 그대로.
@@ -64,6 +70,7 @@ type StatusFilter = "all" | "PASSED" | "REJECTED" | "WAITING";
 
 interface ApplicationsTableProps {
   applications: ApplicationResponse[];
+  questions: SchemaValue;
   enableBulkScheduleImport?: boolean;
   /** true면 PASSED/REJECTED를 "승인/미승인"으로 표시한다(학회 내부 신청/모집용). 기본 false=합격/불합격. */
   useApprovalLabels?: boolean;
@@ -152,6 +159,7 @@ function formatDate(dateString: string): string {
 
 export default function ApplicationsTable({
   applications: initialApplications,
+  questions,
   enableBulkScheduleImport = false,
   useApprovalLabels = false,
   onApplicationsDeleted,
@@ -370,7 +378,7 @@ export default function ApplicationsTable({
     isWaitingStatus(app.status),
   ).length;
 
-  return (
+  const applicantList = (
     <div className="space-y-4">
       {/* Filters / Bulk toolbar */}
       <div className="flex min-h-9 flex-wrap items-center gap-2">
@@ -480,24 +488,35 @@ export default function ApplicationsTable({
       {/* Table */}
       {filteredApplications.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p>지원자가 없습니다</p>
+          <p>{useApprovalLabels ? "신청자가 없습니다" : "지원자가 없습니다"}</p>
         </div>
       ) : (
-        <Table>
+        <Table className="min-w-[800px] table-fixed">
+          <colgroup>
+            <col className="w-[13%]" />
+            <col className="w-[12%]" />
+            <col className="w-[16%]" />
+            <col className="w-[32%]" />
+            <col className="w-[9%]" />
+            <col className="w-[18%]" />
+          </colgroup>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-10">
-                <Checkbox
-                  checked={allFilteredSelected}
-                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                />
+              <TableHead scope="col">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    aria-label="표시된 신청서 전체 선택"
+                    checked={allFilteredSelected}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  />
+                  <span>이름</span>
+                </div>
               </TableHead>
-              <TableHead className="w-[10%]">이름</TableHead>
-              <TableHead className="w-[10%]">학번</TableHead>
-              <TableHead className="w-[14%]">전공</TableHead>
-              <TableHead className="w-[16%]">이메일</TableHead>
-              <TableHead className="w-[10%] text-center">상태</TableHead>
-              <TableHead className="w-[20%] text-center">지원일</TableHead>
+              <TableHead scope="col">학번</TableHead>
+              <TableHead scope="col">전공</TableHead>
+              <TableHead scope="col">이메일</TableHead>
+              <TableHead scope="col" className="text-center">상태</TableHead>
+              <TableHead scope="col" className="text-center">{useApprovalLabels ? "신청일" : "지원일"}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -510,17 +529,25 @@ export default function ApplicationsTable({
                   }}
                   className="cursor-pointer"
                 >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.has(application.id)}
-                      disabled={application.status === "CANCELED"}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(application.id, !!checked)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium text-sm py-4">
-                    {application.name}
+                  <TableCell className="py-4">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Checkbox
+                        aria-label={`${application.name} 신청서 선택`}
+                        checked={selectedIds.has(application.id)}
+                        disabled={application.status === "CANCELED"}
+                        onClick={(event) => event.stopPropagation()}
+                        onCheckedChange={(checked) => handleSelectOne(application.id, !!checked)}
+                      />
+                      <Link
+                        href={`/manage/applications/${application.id}`}
+                        prefetch={false}
+                        onClick={(event) => event.stopPropagation()}
+                        className="min-w-0 truncate font-medium hover:underline"
+                        title={application.name}
+                      >
+                        {application.name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm py-4 text-muted-foreground">
                     {application.studentId}
@@ -535,8 +562,8 @@ export default function ApplicationsTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm py-4 text-muted-foreground max-w-45">
-                    <span className="truncate block">{application.email}</span>
+                  <TableCell className="text-sm py-3 text-muted-foreground">
+                    <ApplicationEmail email={application.email} />
                   </TableCell>
                   <TableCell className="text-center py-4">
                     {getStatusBadge(application.status, useApprovalLabels)}
@@ -550,6 +577,26 @@ export default function ApplicationsTable({
           </TableBody>
         </Table>
       )}
+    </div>
+  );
+
+  return (
+    <div className="min-w-0">
+      <Tabs defaultValue="list" className="min-w-0 gap-4">
+        <TabsList aria-label="신청자 보기" variant="line" className={`h-12 max-w-full ${styles.tabList}`}>
+          <TabsTrigger value="list">목록</TabsTrigger>
+          <TabsTrigger value="answers">신청 내용 확인</TabsTrigger>
+        </TabsList>
+        <TabsContent value="list" className="min-w-0">{applicantList}</TabsContent>
+        <TabsContent value="answers" className="min-w-0">
+          <ApplicationAnswersTable
+            applications={applications}
+            questions={questions}
+            useApprovalLabels={useApprovalLabels}
+            renderStatus={(status) => getStatusBadge(status, useApprovalLabels)}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Bulk Status Change Dialog */}
       <AlertDialog

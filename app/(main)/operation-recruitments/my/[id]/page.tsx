@@ -29,6 +29,7 @@ import {
   getMyOperationApplication,
   updateMyOperationApplication,
 } from "@/lib/api/application";
+import { getOperationRecruitmentById } from "@/lib/api/recruitment";
 import {
   ApplicationAnswers,
   ApplicationResponse,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/interfaces/form-builder";
 import { toast } from "sonner";
 import { useMenuNotification } from "@/lib/contexts/MenuNotificationContext";
+import type { RecruitmentResponse } from "@/lib/interfaces/recruitment";
 
 // 이 페이지는 학회 내부 신청/모집(INTERNAL_OPERATION) 전용이므로 승인/미승인 문구를 쓴다.
 const STATUS_LABELS: Record<string, string> = {
@@ -65,6 +67,21 @@ function displayAnswer(value: string | string[] | undefined) {
   return value?.trim() || "-";
 }
 
+function seoulTimestamp(value: string): number {
+  return Date.parse(/(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}+09:00`);
+}
+
+function editBlockedReason(recruitment: RecruitmentResponse | null, now: number): string | null {
+  if (!recruitment) return "모집 상태를 확인할 수 없어 수정할 수 없습니다.";
+  const start = seoulTimestamp(recruitment.startAt);
+  const end = seoulTimestamp(recruitment.endAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "모집 기간을 확인할 수 없어 수정할 수 없습니다.";
+  if (now > end) return "모집이 마감되어 수정할 수 없습니다.";
+  if (!recruitment.active) return "현재 접수가 중단되어 수정할 수 없습니다.";
+  if (now < start) return "모집 시작 전에는 수정할 수 없습니다.";
+  return null;
+}
+
 export default function MyOperationApplicationDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -87,6 +104,8 @@ export default function MyOperationApplicationDetailPage() {
   const [saving, setSaving] = useState(false);
   const [draftAnswers, setDraftAnswers] = useState<ApplicationAnswers>({});
   const [answerErrors, setAnswerErrors] = useState<Record<string, string>>({});
+  const [recruitment, setRecruitment] = useState<RecruitmentResponse | null>(null);
+  const [now, setNow] = useState(Date.now);
   const { markItemViewed } = useMenuNotification();
 
   const loadApplication = useCallback(async () => {
@@ -107,6 +126,42 @@ export default function MyOperationApplicationDetailPage() {
   useEffect(() => {
     void loadApplication();
   }, [loadApplication]);
+
+  const editableRecruitmentId = application?.status === "APPLIED" ? application.recruitmentId : null;
+
+  useEffect(() => {
+    if (!editableRecruitmentId) return;
+    let cancelled = false;
+    void getOperationRecruitmentById(editableRecruitmentId)
+      .then((result) => {
+        if (cancelled) return;
+        setNow(Date.now());
+        setRecruitment(result);
+      })
+      .catch(() => {
+        if (!cancelled) setRecruitment(null);
+      });
+    return () => { cancelled = true; };
+  }, [editableRecruitmentId]);
+
+  const currentRecruitment = editableRecruitmentId && recruitment?.id === editableRecruitmentId
+    ? recruitment
+    : null;
+  const blockedReason = application?.status === "APPLIED"
+    ? editBlockedReason(currentRecruitment, now)
+    : "검토가 시작된 신청서는 수정할 수 없습니다.";
+  const canEdit = blockedReason === null;
+
+  useEffect(() => {
+    if (!currentRecruitment?.active) return;
+    const start = seoulTimestamp(currentRecruitment.startAt);
+    const end = seoulTimestamp(currentRecruitment.endAt);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || now > end) return;
+    const boundary = now < start ? start : end + 1;
+    const wait = Math.min(Math.max(1, boundary - Date.now()), 2_147_483_647);
+    const timeoutId = window.setTimeout(() => setNow(Date.now()), wait);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentRecruitment, now]);
 
   useEffect(() => {
     if (!application?.recruitmentId) return;
@@ -149,7 +204,13 @@ export default function MyOperationApplicationDetailPage() {
   }
 
   async function handleSave() {
-    if (!application || !schema) return;
+    if (!application || !schema || saving || application.status !== "APPLIED") return;
+    const reason = editBlockedReason(currentRecruitment, new Date().getTime());
+    if (reason) {
+      setNow(new Date().getTime());
+      toast.error(reason);
+      return;
+    }
     const validationErrors = validateRequiredAnswers(schema, draftAnswers);
     setAnswerErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
@@ -331,10 +392,12 @@ export default function MyOperationApplicationDetailPage() {
         </div>
         {application.status === "APPLIED" && !editing && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={startEditing}>
-              <Pencil className="mr-2 h-4 w-4" />
-              신청서 수정
-            </Button>
+            {canEdit && (
+              <Button variant="outline" onClick={startEditing}>
+                <Pencil className="mr-2 h-4 w-4" />
+                신청서 수정
+              </Button>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="text-destructive">
@@ -387,12 +450,15 @@ export default function MyOperationApplicationDetailPage() {
               <Button variant="outline" size="sm" onClick={cancelEditing}>
                 취소
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving}>
+              <Button size="sm" onClick={handleSave} disabled={saving || !canEdit}>
                 {saving ? "저장 중..." : "저장"}
               </Button>
             </div>
           )}
         </CardHeader>
+        {editing && blockedReason && (
+          <p role="status" className="px-6 text-sm text-muted-foreground">{blockedReason}</p>
+        )}
         <CardContent className="divide-y">
           {!schema || schema.questions.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">

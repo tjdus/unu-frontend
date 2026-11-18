@@ -1,0 +1,25 @@
+:global([data-app-m3]) .tabList[data-slot="tabs-list"] {
+  height: 48px;
+  border-bottom: 0;
+}
+
+:global([data-app-m3]) .tabList [data-slot="tabs-trigger"] {
+  height: 100%;
+  border-bottom: 1px solid var(--m3-outline-variant);
+  transition: border-bottom-color 280ms ease;
+}
+
+:global([data-app-m3]) .tabList [data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--m3-on-surface-variant);
+  border-bottom-color: var(--m3-primary);
+}
+
+.tabList [data-slot="tabs-trigger"]::after {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global([data-app-m3]) .tabList [data-slot="tabs-trigger"] {
+    transition: none;
+  }
+}

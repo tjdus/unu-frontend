@@ -1,34 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { getRecruitmentCompletionMessage } from "@/lib/api/recruitment";
+import { hasApplicationSubmission } from "@/lib/utils/application-receipt";
 import {
   ApplyDivider,
   ApplyHero,
+  ApplySkeleton,
   Chip,
   SectionHead,
   applyStyles as styles,
 } from "@/components/custom/apply/apply-ui";
 
 const CHECK_PATH = ["홈 화면 지원 안내", "지원하러 가기", "내 지원서 조회"];
+const subscribeToNothing = () => () => undefined;
 
-export default function ApplicationCompletePage() {
+function ApplicationCompletion({ recruitmentId }: { recruitmentId: string | null }) {
+  const router = useRouter();
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+  const hasReceipt = useSyncExternalStore(
+    subscribeToNothing,
+    () => Boolean(recruitmentId && hasApplicationSubmission(recruitmentId)),
+    () => null,
+  );
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("recruitmentId");
-    if (!id) return;
+    if (hasReceipt === false) {
+      router.replace("/apply");
+      return;
+    }
+    if (!hasReceipt || !recruitmentId) return;
 
-    getRecruitmentCompletionMessage(id)
+    let cancelled = false;
+    getRecruitmentCompletionMessage(recruitmentId)
       .then(({ completionMessage: message }) => {
-        setCompletionMessage(message?.trim() || null);
+        if (!cancelled) setCompletionMessage(message?.trim() || null);
       })
       .catch(() => {
         // The submission is already complete, so an optional notice failure is non-blocking.
       });
-  }, []);
+    return () => { cancelled = true; };
+  }, [hasReceipt, recruitmentId, router]);
+
+  if (!hasReceipt) return <ApplySkeleton />;
 
   const applyHref = "/apply";
 
@@ -80,5 +97,18 @@ export default function ApplicationCompletePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function ApplicationCompleteRoute() {
+  const recruitmentId = useSearchParams().get("recruitmentId");
+  return <ApplicationCompletion key={recruitmentId} recruitmentId={recruitmentId} />;
+}
+
+export default function ApplicationCompletePage() {
+  return (
+    <Suspense fallback={<ApplySkeleton />}>
+      <ApplicationCompleteRoute />
+    </Suspense>
   );
 }

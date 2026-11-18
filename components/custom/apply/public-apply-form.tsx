@@ -17,6 +17,7 @@ import {
   validateRequiredAnswers,
 } from "@/lib/interfaces/form-builder";
 import { cn } from "@/lib/utils";
+import { rememberApplicationSubmission } from "@/lib/utils/application-receipt";
 import {
   ApplyDivider,
   ApplyHero,
@@ -173,7 +174,12 @@ export function PublicApplyForm() {
         recruitmentId: recruitment.id,
         password: info.password,
       });
-      router.push(`/apply/complete?recruitmentId=${encodeURIComponent(recruitment.id)}`);
+      if (rememberApplicationSubmission(recruitment.id)) {
+        router.push(`/apply/complete?recruitmentId=${encodeURIComponent(recruitment.id)}`);
+      } else {
+        deepToast.success("지원서가 접수되었습니다. 내 지원서 조회에서 확인할 수 있습니다.");
+        router.replace("/apply/my");
+      }
     } catch (submitError: unknown) {
       console.error("Failed to submit application:", submitError);
       deepToast.error(getPublicApiErrorMessage(submitError, "지원서 제출에 실패했습니다. 다시 시도해주세요."));

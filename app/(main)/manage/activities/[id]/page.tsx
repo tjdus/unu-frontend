@@ -107,8 +107,8 @@ import {
 import{
   supportsDiscordLink
 } from "@/lib/constants/discord-link";
-import { 
-  ActivitySessionResponseDto,
+import {
+  ChronologicalActivitySession,
   ActivitySessionWeekday,
 } from "@/lib/interfaces/activity-session";
 import { AttendanceResponseDto } from "@/lib/interfaces/attendance";
@@ -117,6 +117,7 @@ import { formatDate, formatDateTime } from "@/lib/utils/date-utils";
 import { ActivityTypeBadge } from "@/components/custom/activity/activity-type-badge";
 import { ActivityStatusBadge } from "@/components/custom/activity/activity-status-badge";
 import { activityDisplayStatus } from "@/lib/utils/activity-recruitment";
+import { orderActivitySessions } from "@/lib/utils/activity-sessions";
 import { ParticipantStatusBadge } from "@/components/custom/participant/partipant-status-badge";
 import {
   isOperationPlanUrl,
@@ -156,6 +157,16 @@ const WEEKDAY_OPTIONS: { value: ActivitySessionWeekday; label: string }[] = [
 ];
 
 const SESSIONS_PER_PAGE = 10;
+const attendanceDateFormat = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function attendanceToday() {
+  return attendanceDateFormat.format(new Date());
+}
 
 const WEEKDAY_BY_INDEX: ActivitySessionWeekday[] = [
   "SUNDAY",
@@ -401,7 +412,7 @@ export function ActivityManagementScreen({
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
 
   // Session & Attendance states
-  const [sessions, setSessions] = useState<ActivitySessionResponseDto[]>([]);
+  const [sessions, setSessions] = useState<ChronologicalActivitySession[]>([]);
   const [sessionPage, setSessionPage] = useState(1);
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") === "applications" ? "applications" : "info",
@@ -427,7 +438,7 @@ export function ActivityManagementScreen({
   const summaryLoadedRef = useRef(false);
   const statsLoadedRef = useRef(false);
   const sessionsInflightRef = useRef<Promise<
-    ActivitySessionResponseDto[] | null
+    ChronologicalActivitySession[] | null
   > | null>(null);
   const summaryInflightRef = useRef<Promise<void> | null>(null);
   const statsInflightRef = useRef<Promise<void> | null>(null);
@@ -436,7 +447,6 @@ export function ActivityManagementScreen({
   const [bulkSessionCreating, setBulkSessionCreating] = useState(false);
   const [sessionDialogStep, setSessionDialogStep] = useState<1 | 2>(1);
   const [sessionForm, setSessionForm] = useState({
-    sessionNumber: 1,
     date: "",
     description: "",
   });
@@ -455,7 +465,7 @@ export function ActivityManagementScreen({
   });
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [selectedSession, setSelectedSession] =
-    useState<ActivitySessionResponseDto | null>(null);
+    useState<ChronologicalActivitySession | null>(null);
   const [attendanceData, setAttendanceData] = useState<{
     present: Set<string>;
     absent: Set<string>;
@@ -565,10 +575,14 @@ export function ActivityManagementScreen({
     (sessionPage - 1) * SESSIONS_PER_PAGE,
     sessionPage * SESSIONS_PER_PAGE,
   );
-  const completedSessionCount = sessions.filter(
-    (session) => session.date <= localDateValue(),
-  ).length;
+  const today = attendanceToday();
+  const completedSessionCount = sessions.filter((session) => session.date <= today).length;
   const upcomingSessionCount = sessions.length - completedSessionCount;
+  const isSessionFormFuture = sessionForm.date > today;
+  const isSessionFormOutsideActivity = Boolean(
+    activity && sessionForm.date &&
+    (sessionForm.date < activity.startDate || sessionForm.date > activity.endDate),
+  );
 
   useEffect(() => {
     setSessionPage((page) => Math.min(page, sessionTotalPages));
@@ -665,17 +679,14 @@ export function ActivityManagementScreen({
   // 회차 목록만 로드. 최초 1회 캐시하고, 회차 mutation 시에만 force로 재조회한다.
   async function loadSessions(
     force = false,
-  ): Promise<ActivitySessionResponseDto[] | null> {
+  ): Promise<ChronologicalActivitySession[] | null> {
     if (!force && sessionsLoadedRef.current) return sessions;
     if (!force && sessionsInflightRef.current) return sessionsInflightRef.current;
 
     const request = (async () => {
       setSessionsLoading(true);
       try {
-        const sessionsData = await getActivitySessionsByActivityId(activityId);
-        const sortedSessions = [...sessionsData].sort(
-          (a, b) => a.sessionNumber - b.sessionNumber,
-        );
+        const sortedSessions = await getActivitySessionsByActivityId(activityId);
         setSessions(sortedSessions);
         setSelectedSessionIds((selected) => {
           const validIds = new Set(sortedSessions.map((session) => session.id));
@@ -738,7 +749,7 @@ export function ActivityManagementScreen({
 
   // 일정 관리 탭 진입 시 필요한 데이터(회차 목록 + 세션별 출석 요약)만 로드한다.
   async function loadScheduleData(): Promise<
-    ActivitySessionResponseDto[] | null
+    ChronologicalActivitySession[] | null
   > {
     const [loadedSessions] = await Promise.all([
       loadSessions(),
@@ -749,7 +760,7 @@ export function ActivityManagementScreen({
 
   // 회차 mutation(생성/삭제 등) 후: 회차 + 요약을 강제 재조회하고, 참여자 통계는 다음 진입 시 새로고침하도록 무효화만 한다.
   async function refreshScheduleData(): Promise<
-    ActivitySessionResponseDto[] | null
+    ChronologicalActivitySession[] | null
   > {
     statsLoadedRef.current = false; // 회차 변경으로 참여자 누적 통계가 바뀔 수 있어 무효화
     const [loadedSessions] = await Promise.all([
@@ -1155,10 +1166,8 @@ export function ActivityManagementScreen({
   // ========================
 
   function handleOpenSessionDialog() {
-    const nextSessionNumber = sessions.length + 1;
     setSessionForm({
-      sessionNumber: nextSessionNumber,
-      date: "",
+      date: attendanceToday(),
       description: "",
     });
     setSessionDialogStep(1);
@@ -1206,9 +1215,8 @@ export function ActivityManagementScreen({
       });
       const refreshedSessions = await refreshScheduleData();
       if (refreshedSessions) {
-        setSessionPage(
-          Math.max(1, Math.ceil(refreshedSessions.length / SESSIONS_PER_PAGE)),
-        );
+        const first = refreshedSessions.find((session) => session.id === createdSessions[0]?.id);
+        if (first) setSessionPage(Math.ceil(first.displayNumber / SESSIONS_PER_PAGE));
       }
       setShowBulkSessionDialog(false);
       toast.success(`${createdSessions.length}개 일정이 생성되었습니다.`);
@@ -1227,18 +1235,16 @@ export function ActivityManagementScreen({
     }
 
     try {
-      await createActivitySession({
+      const created = await createActivitySession({
         activityId,
-        sessionNumber: sessionForm.sessionNumber,
         date: sessionForm.date,
         description: sessionForm.description,
       });
 
       const refreshedSessions = await refreshScheduleData();
       if (refreshedSessions) {
-        setSessionPage(
-          Math.max(1, Math.ceil(refreshedSessions.length / SESSIONS_PER_PAGE)),
-        );
+        const session = refreshedSessions.find((item) => item.id === created.id);
+        if (session) setSessionPage(Math.ceil(session.displayNumber / SESSIONS_PER_PAGE));
       }
 
       setShowSessionDialog(false);
@@ -1254,7 +1260,7 @@ export function ActivityManagementScreen({
       toast.error("날짜를 입력해주세요.");
       return;
     }
-    if (sessionForm.date > localDateValue()) {
+    if (sessionForm.date > attendanceToday()) {
       toast.error("미래 일정의 출석은 해당 날짜부터 입력할 수 있습니다.");
       return;
     }
@@ -1262,17 +1268,16 @@ export function ActivityManagementScreen({
     try {
       const newSession = await createActivitySession({
         activityId,
-        sessionNumber: sessionForm.sessionNumber,
         date: sessionForm.date,
         description: sessionForm.description,
       });
 
-      setSessions((prev) =>
-        [...prev, newSession].sort((a, b) => a.sessionNumber - b.sessionNumber),
-      );
-
-      // Move to step 2 for attendance input
-      setSelectedSession(newSession);
+      const orderedSessions = orderActivitySessions([...sessions, newSession]);
+      const selected = orderedSessions.find((session) => session.id === newSession.id);
+      if (!selected) return;
+      setSessions(orderedSessions);
+      setSessionPage(Math.ceil(selected.displayNumber / SESSIONS_PER_PAGE));
+      setSelectedSession(selected);
       setAttendanceData({
         present: new Set(),
         absent: new Set(),
@@ -1328,9 +1333,9 @@ export function ActivityManagementScreen({
   // ========================
 
   async function handleOpenAttendanceDialog(
-    session: ActivitySessionResponseDto,
+    session: ChronologicalActivitySession,
   ) {
-    if (session.date > localDateValue()) {
+    if (session.date > attendanceToday()) {
       toast.info("미래 일정의 출석은 해당 날짜부터 입력할 수 있습니다.");
       return;
     }
@@ -1468,7 +1473,7 @@ export function ActivityManagementScreen({
 
   async function handleSubmitAttendance() {
     if (!selectedSession) return;
-    if (selectedSession.date > localDateValue()) {
+    if (selectedSession.date > attendanceToday()) {
       toast.error("미래 일정의 출석은 해당 날짜부터 입력할 수 있습니다.");
       return;
     }
@@ -2477,7 +2482,7 @@ export function ActivityManagementScreen({
                     {paginatedSessions.map((session) => {
                       const status = sessionAttendanceStatus.get(session.id);
                       const hasAttendance = status && status.total > 0;
-                      const isFutureSession = session.date > localDateValue();
+                      const isFutureSession = session.date > today;
 
                       return (
                         <TableRow
@@ -2505,7 +2510,7 @@ export function ActivityManagementScreen({
                             />
                           </TableCell>
                           <TableCell className="font-medium">
-                            {session.sessionNumber}회차
+                            {session.displayNumber}회차
                           </TableCell>
                           <TableCell>{formatDate(session.date)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -2972,23 +2977,12 @@ export function ActivityManagementScreen({
               <div className="flex-1 min-h-0 overflow-hidden">
                 <div className="space-y-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">회차</label>
-                    <Input
-                      type="number"
-                      value={sessionForm.sessionNumber}
-                      onChange={(e) =>
-                        setSessionForm((prev) => ({
-                          ...prev,
-                          sessionNumber: parseInt(e.target.value) || 1,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">날짜</label>
+                    <label htmlFor="new-session-date" className="text-sm font-medium">날짜</label>
                     <DatePicker
+                      id="new-session-date"
                       value={sessionForm.date}
+                      min={activity?.startDate}
+                      max={activity?.endDate}
                       onChange={(value) =>
                         setSessionForm((prev) => ({
                           ...prev,
@@ -2996,7 +2990,11 @@ export function ActivityManagementScreen({
                         }))
                       }
                     />
-                    {sessionForm.date > localDateValue() && (
+                    {isSessionFormOutsideActivity ? (
+                      <p className="text-xs text-muted-foreground">
+                        활동 기간에 포함된 날짜를 선택해 주세요.
+                      </p>
+                    ) : isSessionFormFuture && (
                       <p className="text-xs text-muted-foreground">
                         미래 일정은 생성할 수 있으며, 출석은 일정 당일부터 입력할
                         수 있습니다.
@@ -3028,17 +3026,18 @@ export function ActivityManagementScreen({
                 </Button>
                 <Button
                   variant={
-                    sessionForm.date > localDateValue() ? "default" : "outline"
+                    isSessionFormFuture ? "default" : "outline"
                   }
                   onClick={handleCreateSessionOnly}
+                  disabled={isSessionFormOutsideActivity}
                 >
                   일정만 생성
                 </Button>
                 <Button
                   onClick={handleCreateSessionAndAttendance}
-                  disabled={sessionForm.date > localDateValue()}
+                  disabled={isSessionFormFuture || isSessionFormOutsideActivity}
                 >
-                  {sessionForm.date > localDateValue()
+                  {isSessionFormFuture && !isSessionFormOutsideActivity
                     ? "출석은 당일부터"
                     : "다음: 출석 입력"}
                 </Button>
@@ -3049,8 +3048,7 @@ export function ActivityManagementScreen({
               <DialogHeader>
                 <DialogTitle>출석 입력</DialogTitle>
                 <DialogDescription>
-                  {sessionForm.sessionNumber}회차 (
-                  {formatDate(sessionForm.date)})
+                  {selectedSession && `${selectedSession.displayNumber}회차 (${formatDate(selectedSession.date)})`}
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 min-h-0 overflow-hidden">
@@ -3106,8 +3104,7 @@ export function ActivityManagementScreen({
               {isEditingAttendance ? "출석 수정" : "출석 입력"}
             </DialogTitle>
             <DialogDescription>
-              {selectedSession?.sessionNumber}회차 (
-              {selectedSession && formatDate(selectedSession.date)})
+              {selectedSession && `${selectedSession.displayNumber}회차 (${formatDate(selectedSession.date)})`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden">

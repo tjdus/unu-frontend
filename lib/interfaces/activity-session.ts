@@ -2,7 +2,6 @@ import { ActivityResponse } from "./activity";
 
 export interface ActivitySessionRequestDto {
   activityId: string;
-  sessionNumber: number;
   date: string; // ISO date string format (YYYY-MM-DD)
   description: string;
 }
@@ -33,3 +32,7 @@ export interface ActivitySessionResponseDto {
   date: string; // ISO date string format (YYYY-MM-DD)
   description: string;
 }
+
+export type ChronologicalActivitySession = ActivitySessionResponseDto & {
+  displayNumber: number;
+};

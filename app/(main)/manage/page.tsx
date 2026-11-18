@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { getAllActivitySessions } from "@/lib/api/activity-session";
 import { getAllActivities } from "@/lib/api/activity";
 import { getAttendancesBySessionId } from "@/lib/api/attendance";
-import { ActivitySessionResponseDto } from "@/lib/interfaces/activity-session";
+import { ChronologicalActivitySession } from "@/lib/interfaces/activity-session";
 import {
   ActivityResponse,
   ActivityTypeResponse,
@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
 import { getAllActivityTypes } from "@/lib/api/activity-type";
 
 interface EnrichedSession {
-  session: ActivitySessionResponseDto;
+  session: ChronologicalActivitySession;
 }
 
 const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
@@ -586,7 +586,7 @@ function SessionDetailPanel({
           <Badge variant="outline" className={categoryColor}>
             {CATEGORY_MAP[categoryCode]?.label ?? "기타"}
           </Badge>
-          <Badge variant="secondary">{sessionData.sessionNumber} 회차</Badge>
+          <Badge variant="secondary">{sessionData.displayNumber} 회차</Badge>
         </div>
       </div>
 

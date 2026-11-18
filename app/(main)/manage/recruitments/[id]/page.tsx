@@ -481,9 +481,10 @@ export default function RecruitmentDetailPage() {
               </span>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0">
             <ApplicationsTable
               applications={applications}
+              questions={recruitment.questions}
               enableBulkScheduleImport={isLectureRoomManagerRecruitment(
                 recruitment,
               )}

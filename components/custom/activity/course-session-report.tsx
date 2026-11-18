@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActivityParticipantResponse } from "@/lib/interfaces/activity-participant";
-import { ActivitySessionResponseDto } from "@/lib/interfaces/activity-session";
+import { ChronologicalActivitySession } from "@/lib/interfaces/activity-session";
 import { AttendanceResponseDto } from "@/lib/interfaces/attendance";
 import { AttendanceReportResponse } from "@/lib/interfaces/attendance-report";
 import { getActivitySessionsByActivityId } from "@/lib/api/activity-session";
@@ -72,7 +72,7 @@ function getStatusMeta(status: string): StatusMeta {
 // ========================
 
 interface SessionRow {
-  session: ActivitySessionResponseDto;
+  session: ChronologicalActivitySession;
   attendance: AttendanceResponseDto | null;
   report: AttendanceReportResponse | null;
   submitStatus: SubmitStatus; // what status would be assigned if submitted now
@@ -96,7 +96,7 @@ export function CourseSessionReportCard({
 
   // Dialog state
   const [dialogSession, setDialogSession] =
-    useState<ActivitySessionResponseDto | null>(null);
+    useState<ChronologicalActivitySession | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -111,9 +111,6 @@ export function CourseSessionReportCard({
     setLoading(true);
     try {
       const sessions = await getActivitySessionsByActivityId(activityId);
-      const sorted = [...sessions].sort(
-        (a, b) => a.sessionNumber - b.sessionNumber,
-      );
 
       // Fetch attendance only after participation is confirmed.
       let myAttendances: AttendanceResponseDto[] = [];
@@ -127,7 +124,7 @@ export function CourseSessionReportCard({
 
       // Build rows: match attendance to session, then fetch reports
       const built: SessionRow[] = await Promise.all(
-        sorted.map(async (session) => {
+        sessions.map(async (session) => {
           const attendance =
             myAttendances.find((a) => a.session.id === session.id) ?? null;
           let report: AttendanceReportResponse | null = null;
@@ -155,7 +152,7 @@ export function CourseSessionReportCard({
     load();
   }, [load]);
 
-  const openDialog = (session: ActivitySessionResponseDto) => {
+  const openDialog = (session: ChronologicalActivitySession) => {
     setDialogSession(session);
     setTitle("");
     setContent("");
@@ -234,7 +231,7 @@ export function CourseSessionReportCard({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium shrink-0">
-                            {session.sessionNumber}회차
+                            {session.displayNumber}회차
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {format(
@@ -330,7 +327,7 @@ export function CourseSessionReportCard({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {dialogSession?.sessionNumber}회차 보고서 작성
+              {dialogSession?.displayNumber}회차 보고서 작성
             </DialogTitle>
           </DialogHeader>
 

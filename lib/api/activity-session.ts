@@ -3,17 +3,19 @@ import {
   ActivitySessionBulkRequestDto,
   ActivitySessionRequestDto,
   ActivitySessionResponseDto,
+  ChronologicalActivitySession,
 } from "../interfaces/activity-session";
+import { orderActivitySessions } from "@/lib/utils/activity-sessions";
 
 /**
  * Get all activity sessions
  */
 export const getAllActivitySessions = async (): Promise<
-  ActivitySessionResponseDto[]
+  ChronologicalActivitySession[]
 > => {
   const response =
     await axiosInstance.get<ActivitySessionResponseDto[]>("/activity-sessions");
-  return response.data;
+  return orderActivitySessions(response.data);
 };
 
 export const createActivitySessionsBulk = async (
@@ -77,9 +79,9 @@ export const deleteActivitySession = async (id: string): Promise<void> => {
  */
 export const getActivitySessionsByActivityId = async (
   activityId: string,
-): Promise<ActivitySessionResponseDto[]> => {
+): Promise<ChronologicalActivitySession[]> => {
   const response = await axiosInstance.get<ActivitySessionResponseDto[]>(
     `/activity-sessions/activities/${activityId}`,
   );
-  return response.data;
+  return orderActivitySessions(response.data);
 };
