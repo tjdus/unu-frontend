@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,7 @@ import { STATUS_TONES } from "@/lib/constants/status-badge-tones";
 import { useActivityNoticeUnread } from "@/lib/contexts/ActivityNoticeUnreadContext";
 import { formatUnreadCount } from "@/lib/utils/unread-count";
 import { useMenuNotification } from "@/lib/contexts/MenuNotificationContext";
+import { DEPOSIT_REFUND_NOTICE, PRIVACY_POLICY_PATH } from "@/lib/privacy-policy";
 import {
   ACTIVITY_RETURN_TARGETS,
   resolveActivityReturnSource,
@@ -339,7 +341,6 @@ export default function ActivityDetails() {
   const [studyDepositOpen, setStudyDepositOpen] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [confirmedPayment, setConfirmedPayment] = useState(false);
-  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [agreedToPromo, setAgreedToPromo] = useState(false);
   const [refundBankName, setRefundBankName] = useState("");
   const [refundAccountNumber, setRefundAccountNumber] = useState("");
@@ -544,7 +545,6 @@ export default function ActivityDetails() {
     ) {
       setAgreedToPolicy(false);
       setConfirmedPayment(false);
-      setAgreedToPrivacy(false);
       setAgreedToPromo(false);
       setRefundBankName("");
       setRefundAccountNumber("");
@@ -583,7 +583,6 @@ export default function ActivityDetails() {
       refundAccountHolder: refundAccountHolder.trim(),
       agreedToDepositPolicy: agreedToPolicy,
       confirmedDepositPayment: confirmedPayment,
-      agreedToPrivacy: agreedToPrivacy,
       agreedToPromotion: agreedToPromo,
     });
     if (applied) setStudyDepositOpen(false);
@@ -1523,35 +1522,31 @@ export default function ActivityDetails() {
             </section>
 
             <section className="space-y-3 border-t pt-4">
-              <h3 className="font-semibold">개인정보 수집·이용 동의</h3>
+              <h3 className="font-semibold">개인정보 수집 안내</h3>
               <div className="space-y-2 rounded-md border bg-muted/30 p-4 text-xs leading-relaxed text-muted-foreground">
                 <div className="space-y-1">
-                  <p>
-                    <span className="font-medium text-foreground">수집 항목</span>
-                    {" · "}은행명, 예금주명, 계좌번호
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">이용 목적</span>
-                    {" · "}활동 보증금 환급
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">보유 기간</span>
-                    {" · "}보증금 환급 완료 후 파기
-                  </p>
+                  {DEPOSIT_REFUND_NOTICE.map((row) => (
+                    <p key={row.label}>
+                      <span className="font-medium text-foreground">{row.label}</span>
+                      {" · "}
+                      {row.value}
+                    </p>
+                  ))}
                 </div>
                 <p className="border-t pt-2.5">
-                  개인정보 수집·이용에 대한 동의를 거부할 수 있으나, 동의하지 않을
-                  경우 해당 활동 참여 신청이 제한될 수 있습니다.
+                  환급 계좌는 보증금 환급 계약 이행에 필요한 정보로, 별도 동의 없이
+                  처리합니다. 자세한 내용은{" "}
+                  <Link
+                    href={PRIVACY_POLICY_PATH}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-foreground underline underline-offset-2"
+                  >
+                    개인정보 처리방침
+                  </Link>
+                  을 확인해 주세요.
                 </p>
               </div>
-              <label className="flex cursor-pointer items-start gap-2.5 leading-relaxed">
-                <Checkbox
-                  className="mt-0.5"
-                  checked={agreedToPrivacy}
-                  onCheckedChange={(v) => setAgreedToPrivacy(!!v)}
-                />
-                <span>[필수] 개인정보 수집·이용에 동의합니다.</span>
-              </label>
             </section>
 
             <section className="space-y-3 border-t pt-4">
@@ -1602,7 +1597,6 @@ export default function ActivityDetails() {
                 !refundAccountHolder.trim() ||
                 !agreedToPolicy ||
                 !confirmedPayment ||
-                !agreedToPrivacy ||
                 actionLoading
               }
               onClick={handleStudyDepositConfirm}

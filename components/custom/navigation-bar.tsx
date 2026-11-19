@@ -56,7 +56,7 @@ export function NavigationBar({ forceDeep = false }: { forceDeep?: boolean }) {
   );
   // About, its seven section pages (/about/[slug]) and their post editors share the deep About header,
   // as do the public apply pages.
-  const isDeepHeader = forceDeep || route === "about" || route === "signup" || isEditorial || (route === "apply" && !isOperationApply);
+  const isDeepHeader = forceDeep || route === "about" || route === "signup" || route === "privacy" || isEditorial || (route === "apply" && !isOperationApply);
 
   const rightContent = () => {
     if (isLoading) return isDeepHeader ? null : <div className="h-16 w-20 sm:w-[133px]" />;

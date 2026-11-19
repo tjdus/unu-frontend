@@ -311,7 +311,7 @@ export default function Home() {
         </div>
         <div className={styles.map}>
           <Image
-            src="/map.png"
+            src="/map.webp"
             alt="CNU 랩실 위치 지도 — 서강대학교 리치과학관 9층 R912"
             fill
             sizes="(max-width: 1100px) 100vw, 820px"

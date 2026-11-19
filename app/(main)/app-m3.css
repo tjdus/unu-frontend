@@ -167,6 +167,37 @@ body:has([data-app-m3]) [data-slot="button"] {
   box-shadow: none;
 }
 
+/* ── Optical centring of one-line labels ───────────────────────────── */
+/* With Google Sans Flex as the primary font (and Hangul from Noto Sans KR), the line box puts
+   the glyphs about 0.07em above the centre of buttons, chips and select triggers. Push the
+   label down by that amount (top padding grows, bottom shrinks, so the box size is unchanged)
+   and lift icons back by the same amount so they stay centred. */
+body:has([data-app-m3]) :is([data-slot="button"], [data-slot="badge"]) {
+  --label-nudge: .07em;
+}
+
+body:has([data-app-m3]) [data-slot="button"]:not([data-variant="link"]),
+body:has([data-app-m3]) [data-slot="badge"] {
+  padding-top: calc(var(--label-py) + var(--label-nudge));
+  padding-bottom: calc(var(--label-py) - var(--label-nudge));
+}
+
+/* Keep each size's own vertical padding (default = py-2, badge = py-0.5); the fixed-height
+   sizes have none, so they only need room for the nudge. */
+body:has([data-app-m3]) [data-slot="button"] { --label-py: var(--label-nudge); }
+body:has([data-app-m3]) [data-slot="button"][data-size="default"] { --label-py: .5rem; }
+body:has([data-app-m3]) [data-slot="badge"] { --label-py: .125rem; }
+
+body:has([data-app-m3]) [data-slot="button"]:not([data-variant="link"]) svg,
+body:has([data-app-m3]) [data-slot="badge"] svg {
+  translate: 0 calc(var(--label-nudge) * -1);
+}
+
+/* Select triggers keep their padding; only the value text moves (the chevron stays put). */
+body:has([data-app-m3]) [data-slot="select-trigger"] [data-slot="select-value"] {
+  translate: 0 .07em;
+}
+
 body:has([data-app-m3]) [data-slot="button"][data-variant="outline"] {
   border-color: var(--m3-outline-variant);
   background: transparent;

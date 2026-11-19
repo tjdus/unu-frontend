@@ -17,6 +17,8 @@ export interface ApplicationRequest {
   phoneNumber: string;
   password?: string;
   answers: ApplicationAnswers;
+  /** 신규 제출 시 개인정보 수집·이용 동의 (필수) */
+  agreedToPrivacy?: boolean;
 }
 
 export interface ApplicationResponse {

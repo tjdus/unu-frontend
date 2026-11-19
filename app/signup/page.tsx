@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { signup, verifySignupEligibility } from "@/lib/api/auth";
 import { SignUpRequestDto, SignupEligibility } from "@/lib/interfaces/auth";
 import { AccountPage } from "@/components/custom/account-page";
+import { PRIVACY_POLICY_PATH, SIGNUP_PRIVACY_NOTICE } from "@/lib/privacy-policy";
 import styles from "@/components/custom/account-page.module.css";
 
 function formatPhoneNumber(value: string) {
@@ -221,6 +222,17 @@ function SignupForm({ token }: { token: string | null }) {
                   <FieldLabel htmlFor="githubId">GitHub ID (선택)</FieldLabel>
                   <Input id="githubId" name="githubId" type="text" defaultValue={eligibility.githubId ?? ""} placeholder="GitHub 아이디를 입력하세요 (선택)" className="h-11" maxLength={100} autoComplete="off" />
                 </Field>
+                <div className={styles.privacyNotice}>
+                  <p>{SIGNUP_PRIVACY_NOTICE.required}</p>
+                  <p>{SIGNUP_PRIVACY_NOTICE.optional}</p>
+                  <p>
+                    자세한 내용은{" "}
+                    <Link href={PRIVACY_POLICY_PATH} target="_blank" rel="noopener" className={styles.policyLink}>
+                      개인정보 처리방침
+                    </Link>
+                    에서 확인하실 수 있습니다.
+                  </p>
+                </div>
                 {error && (
                   <div role="alert" className={styles.error}>
                     {error}

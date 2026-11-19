@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { deepToast } from "@/components/custom/deep-toast";
 import {
@@ -18,6 +19,11 @@ import {
 } from "@/lib/interfaces/form-builder";
 import { cn } from "@/lib/utils";
 import { rememberApplicationSubmission } from "@/lib/utils/application-receipt";
+import {
+  APPLICATION_PRIVACY_NOTICE,
+  APPLICATION_PRIVACY_REFUSAL,
+  PRIVACY_POLICY_PATH,
+} from "@/lib/privacy-policy";
 import {
   ApplyDivider,
   ApplyHero,
@@ -83,6 +89,7 @@ export function PublicApplyForm() {
   const [info, setInfo] = useState<BasicInfo>(EMPTY_INFO);
   const [answers, setAnswers] = useState<ApplicationAnswers>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -136,6 +143,7 @@ export function PublicApplyForm() {
     if (!info.passwordConfirm.trim()) next.passwordConfirm = "비밀번호 확인을 입력해주세요.";
     else if (info.password !== info.passwordConfirm) next.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     if (schema) Object.assign(next, validateRequiredAnswers(schema, answers));
+    if (!privacyAgreed) next.privacyAgreed = "개인정보 수집·이용에 동의해야 제출할 수 있습니다.";
     return next;
   }
 
@@ -173,6 +181,7 @@ export function PublicApplyForm() {
         answers: answersForSchema(schema?.questions ?? [], answers),
         recruitmentId: recruitment.id,
         password: info.password,
+        agreedToPrivacy: privacyAgreed,
       });
       if (rememberApplicationSubmission(recruitment.id)) {
         router.push(`/apply/complete?recruitmentId=${encodeURIComponent(recruitment.id)}`);
@@ -248,7 +257,8 @@ export function PublicApplyForm() {
           items={[
             { href: "#basic-info", label: "01  기본 정보" },
             { href: "#questions", label: "02  지원서 질문" },
-            { href: "#submit", label: "03  제출" },
+            { href: "#consent", label: "03  개인정보 동의" },
+            { href: "#submit", label: "04  제출" },
           ]}
         />
 
@@ -319,9 +329,48 @@ export function PublicApplyForm() {
             )}
           </section>
 
+          <section className={styles.section} id="consent" aria-labelledby="consent-title">
+            <SectionHead tag="03 · Consent" title="개인정보 수집·이용 동의" note="* 필수" id="consent-title" />
+            <div className={styles.consentNotice}>
+              <dl>
+                {APPLICATION_PRIVACY_NOTICE.map((row) => (
+                  <div key={row.label}>
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p>
+                {APPLICATION_PRIVACY_REFUSAL} 자세한 내용은{" "}
+                <Link href={PRIVACY_POLICY_PATH} target="_blank" rel="noopener" className={styles.policyLink}>
+                  개인정보 처리방침
+                </Link>
+                에서 확인할 수 있습니다.
+              </p>
+            </div>
+            <label className={cn(styles.choice, errors.privacyAgreed && styles.choiceInvalid)}>
+              <input
+                type="checkbox"
+                name="privacyAgreed"
+                checked={privacyAgreed}
+                disabled={disabled}
+                aria-invalid={Boolean(errors.privacyAgreed)}
+                aria-describedby={errors.privacyAgreed ? "privacy-agreed-error" : undefined}
+                onChange={(event) => {
+                  setPrivacyAgreed(event.target.checked);
+                  clearError("privacyAgreed");
+                }}
+              />
+              <span>[필수] 개인정보 수집·이용에 동의합니다.</span>
+            </label>
+            {errors.privacyAgreed && (
+              <p role="alert" id="privacy-agreed-error" className={styles.fieldError}>{errors.privacyAgreed}</p>
+            )}
+          </section>
+
           <section className={styles.submitRow} id="submit" aria-label="제출">
             <div>
-              <span className={styles.tag} lang="en">03 · Submit</span>
+              <span className={styles.tag} lang="en">04 · Submit</span>
               <p className={styles.help}>제출 후에도 모집 마감 전까지 “내 지원서 조회”에서 수정할 수 있습니다.</p>
             </div>
             <button

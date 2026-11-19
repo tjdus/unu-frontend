@@ -31,7 +31,6 @@ export interface ActivityJoinRequest {
   refundAccountHolder?: string;
   agreedToDepositPolicy?: boolean;
   confirmedDepositPayment?: boolean;
-  agreedToPrivacy?: boolean;
   agreedToPromotion?: boolean;
   appliedPosition?: string;
   applicationMessage?: string;

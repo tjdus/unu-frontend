@@ -222,9 +222,8 @@
 .photo {
   aspect-ratio: 484 / 250;
   overflow: hidden;
-  border: 1px solid var(--deep-on);
   border-radius: 4px;
-  background: var(--deep-on);
+  background: transparent;
 }
 
 .photo img {
